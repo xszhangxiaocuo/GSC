@@ -27,3 +27,24 @@ func ReadFile(path string) string {
 
 	return string(file)
 }
+
+// SaveFile 保存文件
+func SaveFile(content string, path string) error {
+	// 创建或打开文件
+	file, err := os.Create(path)
+	if err != nil {
+		fmt.Println("无法创建文件:", err)
+		return err
+	}
+	defer file.Close()
+
+	// 写入数据到文件
+	_, err = file.WriteString(content)
+	if err != nil {
+		fmt.Println("无法写入文件:", err)
+		return err
+	}
+
+	fmt.Println("文件保存成功!")
+	return nil
+}
