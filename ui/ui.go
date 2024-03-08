@@ -2,6 +2,7 @@ package ui
 
 import (
 	"complier/ui/theme"
+	"complier/util"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
@@ -19,9 +20,39 @@ func InitApp() {
 	// 设置默认字体
 	MyApp.Settings().SetTheme(&theme.MyTheme{})
 
+	// 创建两个输入框
+	leftInput := widget.NewMultiLineEntry()
+	leftInput.SetPlaceHolder("请输入源代码...")
+
+	rightOutput := widget.NewMultiLineEntry()
+	//设置换行模式，保证表示在单词边界处进行换行，而不是在任意字符处换行
+	rightOutput.Wrapping = fyne.TextWrapWord
+	rightOutput.SetText("123\n123")
+
+	// 创建一个用于输出的多行文本框，并放入滚动容器中
+	bottomOutput := widget.NewMultiLineEntry()
+	bottomOutput.Wrapping = fyne.TextWrapWord
+	bottomScroll := container.NewScroll(bottomOutput)
+	bottomScroll.SetMinSize(fyne.NewSize(0, 200)) // 设置底部滚动容器的最小高度为200
+	bottomOutput.SetText("123\n123\n123")
+
+	// 创建一个网格容器，用于放置左侧和右侧输入框
+	grid := container.NewGridWithColumns(2,
+		container.NewScroll(leftInput),
+		container.NewScroll(rightOutput),
+	)
+
+	// 创建一个边界容器，用于组织整个布局
+	content := container.NewBorder(nil, bottomScroll, nil, nil, grid)
+
+	MainWindow.SetContent(content)
+
 	// 创建菜单项
 	fileMenu := fyne.NewMenu("文件",
-		fyne.NewMenuItem("打开", func() { println("打开被点击了") }),
+		fyne.NewMenuItem("打开", func() {
+			leftInput.SetText(util.ReadFile(util.OpenFIle()))
+			println("打开被点击了")
+		}),
 		fyne.NewMenuItem("保存", func() { println("保存被点击了") }),
 		fyne.NewMenuItemSeparator(),
 		fyne.NewMenuItem("退出", func() { MyApp.Quit() }),
@@ -67,33 +98,6 @@ func InitApp() {
 		targetcodeMenu,
 	)
 	MainWindow.SetMainMenu(mainMenu)
-
-	// 创建两个输入框
-	leftInput := widget.NewMultiLineEntry()
-	leftInput.SetPlaceHolder("请输入源代码...")
-
-	rightOutput := widget.NewMultiLineEntry()
-	//设置换行模式，保证表示在单词边界处进行换行，而不是在任意字符处换行
-	rightOutput.Wrapping = fyne.TextWrapWord
-	rightOutput.SetText("123\n123")
-
-	// 创建一个用于输出的多行文本框，并放入滚动容器中
-	bottomOutput := widget.NewMultiLineEntry()
-	bottomOutput.Wrapping = fyne.TextWrapWord
-	bottomScroll := container.NewScroll(bottomOutput)
-	bottomScroll.SetMinSize(fyne.NewSize(0, 200)) // 设置底部滚动容器的最小高度为200
-	bottomOutput.SetText("123\n123\n123")
-
-	// 创建一个网格容器，用于放置左侧和右侧输入框
-	grid := container.NewGridWithColumns(2,
-		container.NewScroll(leftInput),
-		container.NewScroll(rightOutput),
-	)
-
-	// 创建一个边界容器，用于组织整个布局
-	content := container.NewBorder(nil, bottomScroll, nil, nil, grid)
-
-	MainWindow.SetContent(content)
 
 	// 显示窗口
 	MainWindow.ShowAndRun()
