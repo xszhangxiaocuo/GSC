@@ -1,7 +1,7 @@
 package ui
 
 import (
-	"complier/compiler"
+	"complier/ui/handler"
 	"complier/ui/theme"
 	"complier/util"
 	"fmt"
@@ -31,14 +31,12 @@ func InitApp() {
 	rightOutput := widget.NewMultiLineEntry()
 	//设置换行模式，保证表示在单词边界处进行换行，而不是在任意字符处换行
 	rightOutput.Wrapping = fyne.TextWrapWord
-	rightOutput.SetText("123\n123")
 
 	// 创建一个用于输出的多行文本框，并放入滚动容器中
 	bottomOutput := widget.NewMultiLineEntry()
 	bottomOutput.Wrapping = fyne.TextWrapWord
 	bottomScroll := container.NewScroll(bottomOutput)
 	bottomScroll.SetMinSize(fyne.NewSize(0, 200)) // 设置底部滚动容器的最小高度为200
-	bottomOutput.SetText("123\n123\n123")
 
 	// 创建一个网格容器，用于放置左侧和右侧输入框
 	grid := container.NewGridWithColumns(2,
@@ -56,9 +54,28 @@ func InitApp() {
 		fyne.NewMenuItem("打开", func() {
 			leftInput.SetText(util.ReadFile(util.OpenFIle()))
 		}),
-		fyne.NewMenuItem("保存", func() {
+		fyne.NewMenuItem("保存源码文件", func() {
+			file := leftInput.Text
+			if len(file) == 0 {
+				dialog.ShowInformation("保存失败", "文件内容不能为空！", MainWindow)
+				return
+			}
+			path := fmt.Sprintf("pkg/saveFile/source/%s.txt", util.GetTIme())
+			err := util.SaveFile(file, path)
+			if err != nil {
+				dialog.ShowInformation("保存失败", "文件保存失败！", MainWindow)
+				log.Print(err.Error())
+			} else {
+				dialog.ShowInformation("保存成功", "文件保存成功！", MainWindow)
+			}
+		}),
+		fyne.NewMenuItem("保存输出文件", func() {
 			file := rightOutput.Text
-			path := fmt.Sprintf("pkg/saveFile/%s.txt", util.GetTIme())
+			if len(file) == 0 {
+				dialog.ShowInformation("保存失败", "文件内容不能为空！", MainWindow)
+				return
+			}
+			path := fmt.Sprintf("pkg/saveFile/lex/%s.txt", util.GetTIme())
 			err := util.SaveFile(file, path)
 			if err != nil {
 				dialog.ShowInformation("保存失败", "文件保存失败！", MainWindow)
@@ -79,10 +96,7 @@ func InitApp() {
 
 	//TODO：完善词法分析菜单选项函数
 	lexerMenu := fyne.NewMenu("词法分析",
-		fyne.NewMenuItem("词法分析器", func() {
-			rightOutput.SetText(compiler.Lexer(leftInput.Text))
-
-		}),
+		fyne.NewMenuItem("词法分析器", handler.NewLexerMenuHandler().LexerHandler(leftInput, rightOutput, bottomOutput)),
 	)
 
 	//TODO：完善语法分析菜单选项函数

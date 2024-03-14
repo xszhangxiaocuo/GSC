@@ -1,6 +1,8 @@
 package main
 
-import "complier/ui"
+import (
+	"complier/ui"
+)
 
 func main() {
 	ui.InitApp()
