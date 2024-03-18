@@ -52,7 +52,7 @@ func InitApp() {
 	// 创建菜单项
 	fileMenu := fyne.NewMenu("文件",
 		fyne.NewMenuItem("打开", func() {
-			leftInput.SetText(util.ReadFile(util.OpenFIle()))
+			leftInput.SetText(util.AddLine(util.ReadFile(util.OpenFIle())))
 		}),
 		fyne.NewMenuItem("保存源码文件", func() {
 			file := leftInput.Text

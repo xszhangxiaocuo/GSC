@@ -19,13 +19,13 @@ func OpenFIle() string {
 }
 
 // ReadFile 读取文件返回文件内容
-func ReadFile(path string) string {
+func ReadFile(path string) []byte {
 	file, err := os.ReadFile(path)
 	if err != nil {
-		return ""
+		return nil
 	}
 
-	return string(file)
+	return file
 }
 
 // SaveFile 保存文件
@@ -47,4 +47,20 @@ func SaveFile(content string, path string) error {
 
 	fmt.Println("文件保存成功!")
 	return nil
+}
+
+// AddLine 为文件内容添加行号
+func AddLine(context []byte) string {
+	result := make([]byte, 0)
+	line := 1
+	result = append(result, []byte("1\t")...)
+	for _, ch := range context {
+		if ch == '\n' {
+			line++
+			result = append(result, []byte(fmt.Sprintf("\n%d\t", line))...)
+		} else {
+			result = append(result, ch)
+		}
+	}
+	return string(result)
 }
