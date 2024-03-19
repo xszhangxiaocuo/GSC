@@ -62,9 +62,16 @@ const (
 	DOT
 )
 
+// 注释符
+const (
+	singlecomment = iota + 901
+	leftmulticomment
+	rightmulticomment
+)
+
 var TokenMap = map[string]Token{
 	"EOF":        EOF,
-	"ILLGEAL":    ILLEGAL,
+	"ILLEGAL":    ILLEGAL,
 	"char":       CHAR,
 	"int":        INT,
 	"float":      FLOAT,
@@ -107,4 +114,7 @@ var TokenMap = map[string]Token{
 	"||":         OR,
 	"=":          EVALUATION,
 	".":          DOT,
+	"//":         singlecomment,
+	"/*":         leftmulticomment,
+	"*/":         rightmulticomment,
 }

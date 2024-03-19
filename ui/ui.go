@@ -52,9 +52,13 @@ func InitApp() {
 	// 创建菜单项
 	fileMenu := fyne.NewMenu("文件",
 		fyne.NewMenuItem("打开", func() {
-			leftInput.SetText(util.AddLine(util.ReadFile(util.OpenFIle())))
+			leftInput.SetText(string(util.ReadFile(util.OpenFIle())))
 		}),
 		fyne.NewMenuItem("保存源码文件", func() {
+			if handler.GlobalLineHandler.Flag { //行号存在会影响词法分析
+				dialog.ShowInformation("词法分析", "请先移除行号！", MainWindow)
+				return
+			}
 			file := leftInput.Text
 			if len(file) == 0 {
 				dialog.ShowInformation("保存失败", "文件内容不能为空！", MainWindow)
@@ -88,15 +92,14 @@ func InitApp() {
 		fyne.NewMenuItem("退出", func() { MyApp.Quit() }),
 	)
 
-	//TODO：完善编辑菜单选项函数
 	editMenu := fyne.NewMenu("编辑",
-		fyne.NewMenuItem("复制", func() { println("复制被点击了") }),
-		fyne.NewMenuItem("粘贴", func() { println("粘贴被点击了") }),
+		fyne.NewMenuItem("添加行号", handler.GlobalLineHandler.SetAddLineText(leftInput, MainWindow)),
+		fyne.NewMenuItem("移除行号", handler.GlobalLineHandler.SetDelLineText(leftInput, MainWindow)),
 	)
 
 	//TODO：完善词法分析菜单选项函数
 	lexerMenu := fyne.NewMenu("词法分析",
-		fyne.NewMenuItem("词法分析器", handler.NewLexerMenuHandler().LexerHandler(leftInput, rightOutput, bottomOutput)),
+		fyne.NewMenuItem("词法分析器", handler.NewLexerMenuHandler().LexerHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
 	)
 
 	//TODO：完善语法分析菜单选项函数
