@@ -69,9 +69,8 @@ const (
 
 // 注释符
 const (
-	singlecomment = iota + 10001
-	leftmulticomment
-	rightmulticomment
+	SINGLECOMMENT = iota + 10001
+	MULTICOMMENT
 )
 
 var TokenMap = map[string]Token{
@@ -128,7 +127,6 @@ var TokenMap = map[string]Token{
 	"=":  EVALUATION,
 	".":  DOT,
 	//注释
-	"//": singlecomment,
-	"/*": leftmulticomment,
-	"*/": rightmulticomment,
+	"//":   SINGLECOMMENT,
+	"/**/": MULTICOMMENT,
 }

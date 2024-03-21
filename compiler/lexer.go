@@ -28,8 +28,8 @@ func NewLexer(reader io.Reader) *Lexer {
 	}
 }
 
-// resetPosition 换行操作
-func (l *Lexer) resetPosition() {
+// lineFeed 换行操作
+func (l *Lexer) lineFeed() {
 	l.pos.Line++
 	l.pos.Column = 0
 }
@@ -53,14 +53,14 @@ func (l *Lexer) Lex() (Position, consts.Token, string, error) {
 			if err == io.EOF { //文件末尾
 				return l.pos, consts.EOF, "", nil
 			}
-			panic(err)
+			log.Println(err)
 		}
 
 		l.pos.Column++
 
 		switch r {
 		case '\n': //换行
-			l.resetPosition()
+			l.lineFeed()
 		case ';':
 			return l.pos, consts.TokenMap[";"], ";", nil
 		case '+':
@@ -74,125 +74,224 @@ func (l *Lexer) Lex() (Position, consts.Token, string, error) {
 		case '=':
 			return l.pos, consts.TokenMap["="], "=", nil
 		default:
-			if unicode.IsSpace(r) { //如果当前字符是空格就跳过继续扫描下一个字符
+			if unicode.IsSpace(r) || r == '\r' || r == '\t' { //如果当前字符是空格,\r,\t就跳过继续扫描下一个字符
 				continue
 			} else if unicode.IsDigit(r) { //数字
 				startPos := l.pos
 				l.backup()
-				tokenid, token = l.lexInt() //读取一个整数integer
+				tokenid, token = l.lexNumber()
 				return startPos, tokenid, token, nil
 			} else if r == '_' || unicode.IsLetter(r) {
 				startPos := l.pos
 				l.backup()
-				tokenid, token = l.LexIDKey()
+				tokenid, token = l.lexIDKey()
 				return startPos, tokenid, token, nil
 			} else if r == '/' {
 				startPos := l.pos
 				l.backup()
-				tokenid, token = l.LexDivision()
+				tokenid, token = l.lexDivision()
 				return startPos, tokenid, token, nil
+			} else {
+				return l.pos, consts.TokenMap["ILLEGAL"], string(r), nil
 			}
 		}
 	}
 }
 
-//// lexInt 扫描一串int数
-//func (l *Lexer) lexInt() (consts.Token, string) {
-//	tokenid := consts.TokenMap["integer"]
-//	token := ""
-//	state := 0
-//	for state != 2 {
-//		r, _, err := l.reader.ReadRune() //读取一个字节
-//
-//		if err != nil {
-//			if err == io.EOF { //文件末尾
-//				if len(token) == 0 {
-//					tokenid = consts.TokenMap["EOF"]
-//				}
-//
-//			} else {
-//				tokenid = consts.TokenMap["ILLEGAL"]
-//				token = ""
-//			}
-//			return tokenid, token
-//		}
-//		l.pos.Column++
-//		switch state {
-//		case 0:
-//			if r == '0' { //第一个数字为0的只能是0
-//				state = 2
-//			} else if unicode.IsDigit(r) {
-//				state = 1
-//				token += string(r)
-//			}
-//		}
-//	}
-//	return tokenid, token
-//}
-
-// lexInt 扫描一串int数
-func (l *Lexer) lexInt() (consts.Token, string) {
+// lexNumber 扫描一串数字
+func (l *Lexer) lexNumber() (consts.Token, string) {
 	var tokenid consts.Token
 	token := ""
-	for {
-		r, _, err := l.reader.ReadRune()
+	state := 0
+	for state != -1 {
+		r, _, err := l.reader.ReadRune() //读取一个字节
 		if err != nil {
 			if err == io.EOF { //文件末尾
 				if len(token) == 0 {
 					tokenid = consts.TokenMap["EOF"]
-				} else {
-					tokenid = consts.TokenMap["integer"]
 				}
 			} else {
 				tokenid = consts.TokenMap["ILLEGAL"]
-				token = ""
+				log.Println(err)
 			}
 			return tokenid, token
 		}
 		l.pos.Column++
 
-		if unicode.IsDigit(r) {
-			token += string(r)
-		} else { //当前字符不是数字
-			l.backup() //回退一个字符
-			tokenid = consts.TokenMap["integer"]
-			return tokenid, token
+		switch state {
+		case 0:
+			if r == '0' { //第一个数字为0,可能为二进制，八进制，十六进制以及0本身
+				state = 6
+				token += string(r)
+			} else if unicode.IsDigit(r) { //十进制数
+				state = 1
+				token += string(r)
+			} else {
+				state = -1
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+
+		case 1:
+			if unicode.IsDigit(r) {
+				token += string(r)
+			} else if r == '.' { //浮点数
+				state = 2
+				token += string(r)
+			} else if r == 'e' || r == 'E' { //指数形式
+				state = 4
+				token += string(r)
+			} else { //一个整数读取完成
+				state = -1
+				l.backup()
+				tokenid = consts.TokenMap["integer"]
+			}
+
+		case 2:
+			if unicode.IsDigit(r) {
+				state = 3
+				token += string(r)
+			} else {
+				state = -1
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+
+		case 3:
+			if unicode.IsDigit(r) {
+				token += string(r)
+			} else if r == 'e' || r == 'E' { //指数形式
+				state = 4
+				token += string(r)
+			} else { //非法格式
+				state = -1
+				l.backup()
+				tokenid = consts.TokenMap["floatnumber"]
+			}
+
+		case 4:
+			if r == '+' || r == '-' || unicode.IsDigit(r) {
+				state = 5
+				token += string(r)
+			} else {
+				state = -1
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+
+		case 5:
+			if unicode.IsDigit(r) {
+				token += string(r)
+			} else { //读取完一个指数形式的数，正常读取结束的情况下需要回退一个字符
+				state = -1
+				l.backup()
+				tokenid = consts.TokenMap["exponent"]
+			}
+
+		case 6:
+			if r >= '0' && r <= '7' { //八进制
+				state = 7
+				token += string(r)
+			} else if r == 'x' || r == 'X' { //十六进制
+				state = 8
+				token += string(r)
+			} else if r == 'b' || r == 'B' { //二进制
+				state = 10
+				token += string(r)
+			} else if r == '.' { //小数0.xxx，转到状态2作为浮点数判断
+				state = 2
+				token += string(r)
+			} else { //整数0
+				state = -1
+				l.backup()
+				tokenid = consts.TokenMap["integer"]
+			}
+
+		case 7:
+			if r >= '0' && r <= '7' {
+				token += string(r)
+			} else {
+				state = -1
+				l.backup()
+				tokenid = consts.TokenMap["oct"]
+			}
+
+		case 8:
+			if unicode.IsDigit(r) || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F') {
+				state = 9
+				token += string(r)
+			} else {
+				state = -1
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+
+		case 9:
+			if unicode.IsDigit(r) || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F') {
+				token += string(r)
+			} else {
+				state = -1
+				l.backup()
+				tokenid = consts.TokenMap["hex"]
+			}
+
+		case 10:
+			if r == '0' || r == '1' {
+				state = 11
+				token += string(r)
+			} else {
+				state = -1
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+
+		case 11:
+			if r == '0' || r == '1' {
+				token += string(r)
+			} else {
+				state = -1
+				l.backup()
+				tokenid = consts.TokenMap["bin"]
+			}
 		}
+
 	}
+	return tokenid, token
 }
 
 // LexIDKey 识别标识符和关键字
-func (l *Lexer) LexIDKey() (consts.Token, string) {
+func (l *Lexer) lexIDKey() (consts.Token, string) {
 	var tokenid consts.Token
 	token := ""
 	state := 0 //初始状态
-	for state != 2 {
+	for state != -1 {
 		r, _, err := l.reader.ReadRune() //读取一个字节
-		l.pos.Column++
 		if err != nil {
 			if err == io.EOF { //文件末尾
 				if len(token) == 0 {
 					tokenid = consts.TokenMap["EOF"]
 				}
-
 			} else {
 				tokenid = consts.TokenMap["ILLEGAL"]
-				token = ""
+				log.Println(err)
 			}
 			return tokenid, token
 		}
+		l.pos.Column++
+
 		switch state {
 		case 0:
 			if r == '_' || unicode.IsLetter(r) { //标识符必须以字母或'_'组成
-				token += string(r)
 				state = 1 //转换为状态1
+				token += string(r)
+
 			} else {
-				state = 2
+				state = -1
 				l.backup() //回退一个字符
 			}
 		case 1:
 			if !(r == '_' || unicode.IsLetter(r) || unicode.IsDigit(r)) { //非下划线，非字母，非数字转到状态2
-				state = 2
+				state = -1
 				l.backup() //回退一个字符
 			} else {
 				token += string(r)
@@ -209,12 +308,12 @@ func (l *Lexer) LexIDKey() (consts.Token, string) {
 }
 
 // LexDivision 识别除号，单行注释和多行注释
-func (l *Lexer) LexDivision() (consts.Token, string) {
+func (l *Lexer) lexDivision() (consts.Token, string) {
 	var tokenid consts.Token
 	token := ""
 	state := 0
 
-	for state != 3 {
+	for state != -1 {
 		r, _, err := l.reader.ReadRune() //读取一个字节
 		l.pos.Column++
 		if err != nil {
@@ -223,9 +322,8 @@ func (l *Lexer) LexDivision() (consts.Token, string) {
 					tokenid = consts.TokenMap["EOF"]
 				}
 			} else {
-				log.Println(err)
 				tokenid = consts.TokenMap["ILLEGAL"]
-				token = ""
+				log.Println(err)
 			}
 			return tokenid, token
 		}
@@ -233,20 +331,49 @@ func (l *Lexer) LexDivision() (consts.Token, string) {
 		case 0:
 			if r == '/' {
 				state = 1
-				tokenid = consts.TokenMap["/"]
 				token += string(r)
+			} else {
+				state = -1
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
 			}
 		case 1:
 			if r == '/' {
 				state = 2
-				tokenid = consts.TokenMap["//"]
 				token += string(r)
+			} else if r == '*' {
+				state = 3
+				token += string(r)
+			} else { //识别为除号
+				state = -1
+				l.backup()
+				tokenid = consts.TokenMap["/"]
 			}
 		case 2:
-			if r == '\n' {
-				state = 3
+			if r == '\n' { //识别为单行注释
+				state = -1
 				l.backup()
+				tokenid = consts.TokenMap["//"]
 			} else {
+				token += string(r)
+			}
+		case 3:
+			if r == '*' {
+				state = 4
+				token += string(r)
+			} else {
+				if r == '\n' {
+					l.lineFeed()
+				}
+				token += string(r)
+			}
+		case 4:
+			if r == '/' { //识别为多行注释
+				state = -1
+				token += string(r)
+				tokenid = consts.TokenMap["/**/"]
+			} else {
+				state = 3
 				token += string(r)
 			}
 		}

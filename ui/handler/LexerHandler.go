@@ -58,7 +58,10 @@ func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entr
 				break
 			}
 
-			result = result + fmt.Sprintf("%d:%d\t%d\t%s\n", pos.Line, pos.Column, tokenid, token)
+			if tokenid != consts.TokenMap["//"] && tokenid != consts.TokenMap["/**/"] { //忽略注释
+				result = result + fmt.Sprintf("%d:%d\t%d\t%s\n", pos.Line, pos.Column, tokenid, token)
+			}
+
 		}
 		output.SetText(result)
 		msg := fmt.Sprintf("---------词法分析完成---------\n%d error(s)\n", len(lexLogger.Errs))
