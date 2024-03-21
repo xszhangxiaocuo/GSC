@@ -31,11 +31,16 @@ const (
 
 // 单词类别
 const (
-	INTEGER    = 400
-	CHARACTER  = 500
-	STRING     = 600
-	IDENTIFIER = 700
-	REALNUMBER = 800
+	INTEGER = iota + 400
+	BIN
+	OCT
+	HEX
+
+	CHARACTER   = 500
+	STRING      = 600
+	IDENTIFIER  = 700
+	FLOATNUMBER = 800
+	EXPONENT    = 900
 )
 
 // 运算符
@@ -64,57 +69,66 @@ const (
 
 // 注释符
 const (
-	singlecomment = iota + 901
+	singlecomment = iota + 10001
 	leftmulticomment
 	rightmulticomment
 )
 
 var TokenMap = map[string]Token{
-	"EOF":        EOF,
-	"ILLEGAL":    ILLEGAL,
-	"char":       CHAR,
-	"int":        INT,
-	"float":      FLOAT,
-	"break":      BREAK,
-	"const":      CONST,
-	"return":     RETURN,
-	"void":       VOID,
-	"continue":   CONTINUE,
-	"do":         DO,
-	"while":      WHILE,
-	"if":         IF,
-	"else":       ELSE,
-	"for":        FOR,
-	"{":          LEFTBRACE,
-	"}":          RIGHTBRACE,
-	";":          SEMICOLON,
-	",":          COMMA,
-	"integer":    INTEGER,
-	"character":  CHARACTER,
-	"string":     STRING,
-	"identifier": IDENTIFIER,
-	"realnumber": REALNUMBER,
-	"(":          LEFTSMALLBRACKET,
-	")":          RIGHTSMALLBRACKET,
-	"[":          LEFTMIDBRACKET,
-	"]":          RIGHTMIDBRACKET,
-	"!":          EXCLAMATIONPOINT,
-	"*":          MULTIPLESIGN,
-	"/":          DIVISIONSIGN,
-	"%":          PERCENT,
-	"+":          PLUS,
-	"-":          MINUS,
-	"<":          LESSTHANSIGN,
-	"<=":         LESSTHANEQUALSIGN,
-	">":          GREATERTHANSIGN,
-	">=":         GREATERTHANEQUALSIGN,
-	"==":         EQUAL,
-	"!=":         UNEQUAL,
-	"&&":         AND,
-	"||":         OR,
-	"=":          EVALUATION,
-	".":          DOT,
-	"//":         singlecomment,
-	"/*":         leftmulticomment,
-	"*/":         rightmulticomment,
+	"EOF":     EOF,     //文件结束
+	"ILLEGAL": ILLEGAL, //非法格式
+	//关键字
+	"char":     CHAR,
+	"int":      INT,
+	"float":    FLOAT,
+	"break":    BREAK,
+	"const":    CONST,
+	"return":   RETURN,
+	"void":     VOID,
+	"continue": CONTINUE,
+	"do":       DO,
+	"while":    WHILE,
+	"if":       IF,
+	"else":     ELSE,
+	"for":      FOR,
+	//界符
+	"{": LEFTBRACE,
+	"}": RIGHTBRACE,
+	";": SEMICOLON,
+	",": COMMA,
+	//类型
+	"integer":     INTEGER,     //整型
+	"bin":         BIN,         //二进制
+	"oct":         OCT,         //八进制
+	"hex":         HEX,         //十六进制
+	"character":   CHARACTER,   //字符
+	"string":      STRING,      //字符串
+	"identifier":  IDENTIFIER,  //标识符
+	"floatnumber": FLOATNUMBER, //浮点数
+	"exponent":    EXPONENT,    //指数形式的数
+	//运算符
+	"(":  LEFTSMALLBRACKET,
+	")":  RIGHTSMALLBRACKET,
+	"[":  LEFTMIDBRACKET,
+	"]":  RIGHTMIDBRACKET,
+	"!":  EXCLAMATIONPOINT,
+	"*":  MULTIPLESIGN,
+	"/":  DIVISIONSIGN,
+	"%":  PERCENT,
+	"+":  PLUS,
+	"-":  MINUS,
+	"<":  LESSTHANSIGN,
+	"<=": LESSTHANEQUALSIGN,
+	">":  GREATERTHANSIGN,
+	">=": GREATERTHANEQUALSIGN,
+	"==": EQUAL,
+	"!=": UNEQUAL,
+	"&&": AND,
+	"||": OR,
+	"=":  EVALUATION,
+	".":  DOT,
+	//注释
+	"//": singlecomment,
+	"/*": leftmulticomment,
+	"*/": rightmulticomment,
 }
