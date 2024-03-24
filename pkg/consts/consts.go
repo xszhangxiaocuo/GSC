@@ -7,6 +7,7 @@ const (
 	EOF     = 0
 	ILLEGAL = -1
 	CHAR    = iota + 101
+	STRING
 	INT
 	FLOAT
 	BREAK
@@ -37,7 +38,7 @@ const (
 	HEX
 
 	CHARACTER   = 500
-	STRING      = 600
+	STRINGER    = 600
 	IDENTIFIER  = 700
 	FLOATNUMBER = 800
 	EXPONENT    = 900
@@ -63,6 +64,8 @@ const (
 	UNEQUAL
 	AND
 	OR
+	SINGLEAND
+	SINGLEOR
 	EVALUATION
 	DOT
 )
@@ -78,6 +81,7 @@ var TokenMap = map[string]Token{
 	"ILLEGAL": ILLEGAL, //非法格式
 	//关键字
 	"char":     CHAR,
+	"string":   STRING,
 	"int":      INT,
 	"float":    FLOAT,
 	"break":    BREAK,
@@ -101,7 +105,7 @@ var TokenMap = map[string]Token{
 	"oct":         OCT,         //八进制
 	"hex":         HEX,         //十六进制
 	"character":   CHARACTER,   //字符
-	"string":      STRING,      //字符串
+	"stringer":    STRINGER,    //字符串
 	"identifier":  IDENTIFIER,  //标识符
 	"floatnumber": FLOATNUMBER, //浮点数
 	"exponent":    EXPONENT,    //指数形式的数
@@ -124,6 +128,8 @@ var TokenMap = map[string]Token{
 	"!=": UNEQUAL,
 	"&&": AND,
 	"||": OR,
+	"&":  SINGLEAND,
+	"|":  SINGLEOR,
 	"=":  EVALUATION,
 	".":  DOT,
 	//注释
