@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"github.com/sqweek/dialog"
+	"log"
 	"os"
 )
 
@@ -10,11 +11,11 @@ import (
 func OpenFIle() string {
 	filePath, err := dialog.File().Load()
 	if err != nil {
-		fmt.Println("Error opening file dialog:", err)
+		log.Println("Error opening file dialog:", err)
 		return ""
 	}
 
-	fmt.Println("Selected file:", filePath)
+	log.Println("Selected file:", filePath)
 	return filePath
 }
 
@@ -41,10 +42,10 @@ func SaveFile(content string, path string) error {
 	// 写入数据到文件
 	_, err = file.WriteString(content)
 	if err != nil {
-		fmt.Println("无法写入文件:", err)
+		log.Println("无法写入文件:", err)
 		return err
 	}
 
-	fmt.Println("文件保存成功!")
+	log.Println("文件保存成功")
 	return nil
 }
