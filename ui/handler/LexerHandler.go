@@ -58,7 +58,7 @@ func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entr
 				break
 			}
 
-			if tokenid != consts.TokenMap["//"] && tokenid != consts.TokenMap["/**/"] { //忽略注释
+			if tokenid != consts.TokenMap["//"] && tokenid != consts.TokenMap["/**/"] && tokenid != consts.ILLEGAL { //忽略注释和错误
 				result = result + fmt.Sprintf("%d:%d\t%d\t%s\n", pos.Line, pos.Column, tokenid, token)
 			}
 

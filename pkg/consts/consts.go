@@ -10,6 +10,8 @@ const (
 	STRING
 	INT
 	FLOAT
+	TRUE
+	FALSE
 	BREAK
 	CONST
 	RETURN
@@ -52,10 +54,17 @@ const (
 	RIGHTMIDBRACKET
 	EXCLAMATIONPOINT
 	MULTIPLESIGN
+	MULTIPLESIGNEQUAL
 	DIVISIONSIGN
+	DIVISIONSIGNEQUAL
 	PERCENT
+	PERCENTEQUAL
 	PLUS
+	PLUSPLUS
+	PLUSEQUAL
 	MINUS
+	MINUSMINUS
+	MINUSEQUAL
 	LESSTHANSIGN
 	LESSTHANEQUALSIGN
 	GREATERTHANSIGN
@@ -66,6 +75,8 @@ const (
 	OR
 	SINGLEAND
 	SINGLEOR
+	ANDEQUAL
+	OREQUAL
 	EVALUATION
 	DOT
 )
@@ -84,6 +95,8 @@ var TokenMap = map[string]Token{
 	"string":   STRING,
 	"int":      INT,
 	"float":    FLOAT,
+	"true":     TRUE,
+	"false":    FALSE,
 	"break":    BREAK,
 	"const":    CONST,
 	"return":   RETURN,
@@ -116,10 +129,17 @@ var TokenMap = map[string]Token{
 	"]":  RIGHTMIDBRACKET,
 	"!":  EXCLAMATIONPOINT,
 	"*":  MULTIPLESIGN,
+	"*=": MULTIPLESIGNEQUAL,
 	"/":  DIVISIONSIGN,
+	"/=": DIVISIONSIGNEQUAL,
 	"%":  PERCENT,
+	"%=": PERCENTEQUAL,
 	"+":  PLUS,
+	"++": PLUSPLUS,
+	"+=": PLUSEQUAL,
 	"-":  MINUS,
+	"--": MINUSMINUS,
+	"-=": MINUSEQUAL,
 	"<":  LESSTHANSIGN,
 	"<=": LESSTHANEQUALSIGN,
 	">":  GREATERTHANSIGN,
@@ -130,6 +150,8 @@ var TokenMap = map[string]Token{
 	"||": OR,
 	"&":  SINGLEAND,
 	"|":  SINGLEOR,
+	"&=": ANDEQUAL,
+	"|=": OREQUAL,
 	"=":  EVALUATION,
 	".":  DOT,
 	//注释
