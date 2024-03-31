@@ -299,7 +299,7 @@ func (l *Lexer) lexOpe(r rune) (bool, consts.Token, string) {
 	}
 }
 
-// TODO: 添加小数及各种不同进制的指数形式识别 for(int t=0;t<4;t++
+// TODO: 添加小数及各种不同进制的指数形式识别
 // lexNumber 扫描一串数字
 func (l *Lexer) lexNumber() (consts.Token, string) {
 	var tokenid consts.Token

@@ -36,7 +36,7 @@ func InitApp() {
 	bottomOutput := widget.NewMultiLineEntry()
 	bottomOutput.Wrapping = fyne.TextWrapWord
 	bottomScroll := container.NewScroll(bottomOutput)
-	bottomScroll.SetMinSize(fyne.NewSize(0, 200)) // 设置底部滚动容器的最小高度为200
+	bottomScroll.SetMinSize(fyne.NewSize(0, 300)) // 设置底部滚动容器的最小高度为
 
 	// 创建一个网格容器，用于放置左侧和右侧输入框
 	grid := container.NewGridWithColumns(2,
