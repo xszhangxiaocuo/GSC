@@ -16,8 +16,9 @@ type Position struct {
 
 // Lexer 词法分析器当前状态
 type Lexer struct {
-	pos    Position
-	reader *bufio.Reader
+	pos        Position
+	reader     *bufio.Reader
+	numberFlag int //识别数字时标识当前是几进制
 }
 
 // NewLexer 传入源文件reader创建一个Lexer
@@ -78,6 +79,20 @@ func (l *Lexer) isLetter(r rune) bool {
 func (l *Lexer) isFinish(peek rune) bool {
 	if l.isSpace(peek) || l.isOperator(peek) || l.isDelimiters(peek) {
 		return true
+	}
+	return false
+}
+
+func (l *Lexer) isNumber(n rune) bool {
+	switch l.numberFlag {
+	case 2:
+		return n == '0' || n == '1'
+	case 8:
+		return n >= '0' && n <= '7'
+	case 10:
+		return n >= '0' && n <= '9'
+	case 16:
+		return (n >= '0' && n <= '9') || (n >= 'a' && n <= 'f') || (n >= 'A' && n <= 'F')
 	}
 	return false
 }
@@ -299,7 +314,102 @@ func (l *Lexer) lexOpe(r rune) (bool, consts.Token, string) {
 	}
 }
 
-// TODO: 添加小数及各种不同进制的指数形式识别
+func (l *Lexer) lexSpecificNumber(state int) (consts.Token, string) {
+	var tokenid consts.Token
+	token := ""
+
+	for state != -1 {
+		peeks, err := l.peek(1)
+		peek := rune(peeks[0])
+		r, _, err := l.reader.ReadRune()
+		if err != nil {
+			if err == io.EOF { //文件末尾
+				if len(token) == 0 {
+					tokenid = consts.TokenMap["EOF"]
+				}
+			} else {
+				tokenid = consts.TokenMap["ILLEGAL"]
+				log.Println(err)
+			}
+			return tokenid, token
+		}
+		l.pos.Column++
+		switch state {
+		case 0:
+			if l.isNumber(r) {
+				token += string(r)
+			} else if r == '.' { //浮点数
+				state = 1
+				token += string(r)
+			} else if r == 'e' || r == 'E' || (l.numberFlag == 16 && (r == 'p' || r == 'P')) { //指数形式
+				state = 3
+				token += string(r)
+			} else if l.isFinish(peek) { //一个整数读取完成
+				state = -1
+				l.backup()
+				if tokenid != consts.TokenMap["ILLEGAL"] {
+					tokenid = consts.TokenMap["integer"]
+				}
+			} else {
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+
+		case 1:
+			if l.isNumber(r) {
+				state = 2
+				token += string(r)
+			} else {
+				state = -1
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+
+		case 2:
+			if l.isNumber(r) {
+				token += string(r)
+			} else if r == 'e' || r == 'E' || (l.numberFlag == 16 && (r == 'p' || r == 'P')) { //指数形式
+				state = 3
+				token += string(r)
+			} else if l.isFinish(peek) { //一个小数读取完成
+				state = -1
+				l.backup()
+				if tokenid != consts.TokenMap["ILLEGAL"] {
+					tokenid = consts.TokenMap["floatnumber"]
+				}
+			} else {
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+
+		case 3:
+			if r == '+' || r == '-' || l.isNumber(r) {
+				state = 4
+				token += string(r)
+			} else {
+				state = -1
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+
+		case 4:
+			if l.isNumber(r) {
+				token += string(r)
+			} else if l.isFinish(peek) { //一个指数形式的数读取完成
+				state = -1
+				l.backup()
+				if tokenid != consts.TokenMap["ILLEGAL"] {
+					tokenid = consts.TokenMap["floatnumber"]
+				}
+			} else {
+				token += string(r)
+				tokenid = consts.TokenMap["ILLEGAL"]
+			}
+		}
+	}
+	return tokenid, token
+}
+
 // lexNumber 扫描一串数字
 func (l *Lexer) lexNumber() (consts.Token, string) {
 	var tokenid consts.Token
@@ -325,11 +435,13 @@ func (l *Lexer) lexNumber() (consts.Token, string) {
 		switch state {
 		case 0:
 			if r == '0' { //第一个数字为0,可能为二进制，八进制，十六进制以及0本身
-				state = 6
-				token += string(r)
-			} else if unicode.IsDigit(r) { //十进制数
 				state = 1
 				token += string(r)
+			} else if unicode.IsDigit(r) { //十进制数
+				state = -1
+				l.numberFlag = 10 //标记为十进制数
+				l.backup()
+				tokenid, token = l.lexSpecificNumber(0)
 			} else {
 				state = -1
 				token += string(r)
@@ -337,89 +449,27 @@ func (l *Lexer) lexNumber() (consts.Token, string) {
 			}
 
 		case 1:
-			if unicode.IsDigit(r) {
-				token += string(r)
-			} else if r == '.' { //浮点数
-				state = 2
-				token += string(r)
-			} else if r == 'e' || r == 'E' { //指数形式
-				state = 4
-				token += string(r)
-			} else if l.isFinish(peek) { //一个整数读取完成
-				state = -1
-				l.backup()
-				if tokenid != consts.TokenMap["ILLEGAL"] {
-					tokenid = consts.TokenMap["integer"]
-				}
-			} else {
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
-
-		case 2:
-			if unicode.IsDigit(r) {
-				state = 3
-				token += string(r)
-			} else {
-				state = -1
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
-
-		case 3:
-			if unicode.IsDigit(r) {
-				token += string(r)
-			} else if r == 'e' || r == 'E' { //指数形式
-				state = 4
-				token += string(r)
-			} else if l.isFinish(peek) { //一个小数读取完成
-				state = -1
-				l.backup()
-				if tokenid != consts.TokenMap["ILLEGAL"] {
-					tokenid = consts.TokenMap["floatnumber"]
-				}
-			} else {
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
-
-		case 4:
-			if r == '+' || r == '-' || unicode.IsDigit(r) {
-				state = 5
-				token += string(r)
-			} else {
-				state = -1
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
-
-		case 5:
-			if unicode.IsDigit(r) {
-				token += string(r)
-			} else if l.isFinish(peek) { //一个指数形式的数读取完成
-				state = -1
-				l.backup()
-				if tokenid != consts.TokenMap["ILLEGAL"] {
-					tokenid = consts.TokenMap["exponent"]
-				}
-			} else {
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
-
-		case 6:
 			if r >= '0' && r <= '7' { //八进制
-				state = 7
-				token += string(r)
+				state = -1
+				l.numberFlag = 8 //标记为八进制数
+				l.backup()
+				tokenid, token = l.lexSpecificNumber(0)
+				token = "0" + token
 			} else if r == 'x' || r == 'X' { //十六进制
-				state = 8
-				token += string(r)
+				state = -1
+				l.numberFlag = 16 //标记为十六进制数
+				tokenid, token = l.lexSpecificNumber(0)
+				token = "0x" + token
 			} else if r == 'b' || r == 'B' { //二进制
-				state = 10
-				token += string(r)
-			} else if r == '.' { //小数0.xxx，转到状态2作为浮点数判断
-				state = 2
-				token += string(r)
+				state = -1
+				l.numberFlag = 2 //标记为二进制数
+				tokenid, token = l.lexSpecificNumber(0)
+				token = "0b" + token
+			} else if r == '.' { //0.xxx 为十进制小数
+				state = -1
+				l.numberFlag = 10 //标记为十进制数
+				tokenid, token = l.lexSpecificNumber(1)
+				token = "0." + token
 			} else if l.isFinish(peek) { //整数0
 				state = -1
 				l.backup()
@@ -430,70 +480,7 @@ func (l *Lexer) lexNumber() (consts.Token, string) {
 				token += string(r)
 				tokenid = consts.TokenMap["ILLEGAL"]
 			}
-
-		case 7:
-			if r >= '0' && r <= '7' {
-				token += string(r)
-			} else if l.isFinish(peek) {
-				state = -1
-				l.backup()
-				if tokenid != consts.TokenMap["ILLEGAL"] {
-					tokenid = consts.TokenMap["oct"]
-				}
-			} else {
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
-
-		case 8:
-			if unicode.IsDigit(r) || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F') {
-				state = 9
-				token += string(r)
-			} else {
-				state = -1
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
-
-		case 9:
-			if unicode.IsDigit(r) || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F') {
-				token += string(r)
-			} else if l.isFinish(peek) {
-				state = -1
-				l.backup()
-				if tokenid != consts.TokenMap["ILLEGAL"] {
-					tokenid = consts.TokenMap["hex"]
-				}
-			} else {
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
-
-		case 10:
-			if r == '0' || r == '1' {
-				state = 11
-				token += string(r)
-			} else {
-				state = -1
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
-
-		case 11:
-			if r == '0' || r == '1' {
-				token += string(r)
-			} else if l.isFinish(peek) {
-				state = -1
-				l.backup()
-				if tokenid != consts.TokenMap["ILLEGAL"] {
-					tokenid = consts.TokenMap["bin"]
-				}
-			} else {
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
-			}
 		}
-
 	}
 	return tokenid, token
 }

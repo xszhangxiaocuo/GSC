@@ -28,7 +28,7 @@ func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entr
 		}
 
 		lexLogger := logger.NewLogger()
-		result := ""
+		result := "行:列\t\t种别码\t\ttoken值\n"
 		tempPath := "pkg/temp/temp.txt"
 		if len(input.Text) != 0 { //内容不为空，保存输入框的内容为临时文件
 			tempText := input.Text
@@ -51,7 +51,7 @@ func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entr
 			pos, tokenid, token, lexerr := lexer.Lex()
 
 			if tokenid == consts.ILLEGAL { //当前识别结果不合法
-				lexLogger.AddErr(fmt.Sprintf("%d:%d\t%d\t%s\n", pos.Line, pos.Column, tokenid, token))
+				lexLogger.AddErr(fmt.Sprintf("%d:%d\t\t%d\t\t%s\n", pos.Line, pos.Column, tokenid, token))
 			}
 
 			if tokenid == consts.EOF || lexerr != nil {
@@ -59,7 +59,7 @@ func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entr
 			}
 
 			if tokenid != consts.TokenMap["//"] && tokenid != consts.TokenMap["/**/"] && tokenid != consts.ILLEGAL { //忽略注释和错误
-				result = result + fmt.Sprintf("%d:%d\t%d\t%s\n", pos.Line, pos.Column, tokenid, token)
+				result = result + fmt.Sprintf("%d:%d\t\t%d\t\t\t%s\n", pos.Line, pos.Column, tokenid, token)
 			}
 
 		}
