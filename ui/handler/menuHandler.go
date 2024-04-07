@@ -13,15 +13,19 @@ import (
 	"os"
 )
 
-type LexerMenuHandler struct {
+type MenuHandler struct {
+	LexerFlag  bool //标记是否已经运行词法分析且没有错误
+	ParserFlag bool //标记是否已经运行语法分析且没有错误
+	Parser     *compiler.Parser
 }
 
-func NewLexerMenuHandler() *LexerMenuHandler {
-	return &LexerMenuHandler{}
+func NewMenuHandler() *MenuHandler {
+	return &MenuHandler{}
 }
 
-func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entry, bottomOutput *widget.Entry, window fyne.Window) func() {
+func (handler *MenuHandler) LexerHandler(input *widget.Entry, output *widget.Entry, bottomOutput *widget.Entry, window fyne.Window) func() {
 	return func() {
+		handler.LexerFlag = false
 		if GlobalLineHandler.Flag { //行号存在会影响词法分析
 			dialog.ShowInformation("词法分析", "请先移除行号！", window)
 			return
@@ -47,6 +51,7 @@ func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entr
 		}
 
 		lexer := compiler.NewLexer(file)
+		handler.Parser = compiler.NewParser()
 		for {
 			pos, tokenid, token, lexerr := lexer.Lex()
 
@@ -60,6 +65,7 @@ func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entr
 
 			if tokenid != consts.TokenMap["//"] && tokenid != consts.TokenMap["/**/"] && tokenid != consts.ILLEGAL { //忽略注释和错误
 				result = result + fmt.Sprintf("%d:%d\t\t%d\t\t\t%s\n", pos.Line, pos.Column, tokenid, token)
+				handler.Parser.Token = append(handler.Parser.Token, compiler.TokenNode{Pos: pos, Type: tokenid, Value: token})
 			}
 
 		}
@@ -69,6 +75,9 @@ func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entr
 			msg += e
 		}
 		bottomOutput.SetText(msg)
+		if len(lexLogger.Errs) == 0 { //词法分析结束且没有错误
+			handler.LexerFlag = true
+		}
 
 		content := output.Text
 		path := fmt.Sprintf("pkg/saveFile/lex/%s.txt", util.GetTIme())
@@ -76,5 +85,22 @@ func (l *LexerMenuHandler) LexerHandler(input *widget.Entry, output *widget.Entr
 		if err != nil {
 			log.Print(err.Error())
 		}
+	}
+}
+
+func (handler *MenuHandler) ParserHandler(input *widget.Entry, output *widget.Entry, bottomOutput *widget.Entry, window fyne.Window) func() {
+	return func() {
+		if !handler.LexerFlag {
+			dialog.ShowInformation("语法分析", "请先运行通过词法分析！", window)
+			return
+		}
+		tree := handler.Parser.StartParse()
+		output.SetText(tree)
+
+		msg := fmt.Sprintf("---------语法分析完成---------\n%d error(s)\n\n行:列\t\t种别码\ttoken值\t错误信息\n", len(handler.Parser.Logger.Errs))
+		for _, err := range handler.Parser.Logger.Errs {
+			msg += err
+		}
+		bottomOutput.SetText(msg)
 	}
 }

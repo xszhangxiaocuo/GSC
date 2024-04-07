@@ -314,6 +314,7 @@ func (l *Lexer) lexOpe(r rune) (bool, consts.Token, string) {
 	}
 }
 
+// lexSpecificNumber 根据不同进制进行数字的识别
 func (l *Lexer) lexSpecificNumber(state int) (consts.Token, string) {
 	var tokenid consts.Token
 	token := ""

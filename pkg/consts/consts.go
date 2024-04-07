@@ -16,6 +16,7 @@ const (
 	CONST
 	RETURN
 	VOID
+	MAIN
 	CONTINUE
 	DO
 	WHILE
@@ -101,6 +102,7 @@ var TokenMap = map[string]Token{
 	"const":    CONST,
 	"return":   RETURN,
 	"void":     VOID,
+	"main":     MAIN,
 	"continue": CONTINUE,
 	"do":       DO,
 	"while":    WHILE,

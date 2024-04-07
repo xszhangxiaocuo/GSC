@@ -36,7 +36,7 @@ func InitApp() {
 	bottomOutput := widget.NewMultiLineEntry()
 	bottomOutput.Wrapping = fyne.TextWrapWord
 	bottomScroll := container.NewScroll(bottomOutput)
-	bottomScroll.SetMinSize(fyne.NewSize(0, 300)) // 设置底部滚动容器的最小高度为
+	bottomScroll.SetMinSize(fyne.NewSize(0, 300)) // 设置底部滚动容器的最小高度
 
 	// 创建一个网格容器，用于放置左侧和右侧输入框
 	grid := container.NewGridWithColumns(2,
@@ -96,17 +96,16 @@ func InitApp() {
 		fyne.NewMenuItem("添加行号", handler.GlobalLineHandler.SetAddLineText(leftInput, MainWindow)),
 		fyne.NewMenuItem("移除行号", handler.GlobalLineHandler.SetDelLineText(leftInput, MainWindow)),
 	)
+	menuHandler := handler.NewMenuHandler()
 
-	//TODO：完善词法分析菜单选项函数
 	lexerMenu := fyne.NewMenu("词法分析",
-		fyne.NewMenuItem("词法分析器", handler.NewLexerMenuHandler().LexerHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
+		fyne.NewMenuItem("词法分析器", menuHandler.LexerHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
 	)
 
 	//TODO：完善语法分析菜单选项函数
 	parserMenu := fyne.NewMenu("语法分析",
-		fyne.NewMenuItem("语法分析器", func() {
-			println("语法分析器被点击了")
-		}))
+		fyne.NewMenuItem("语法分析器", menuHandler.ParserHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
+	)
 
 	//TODO：完善语义分析菜单选项函数
 	analysierMenu := fyne.NewMenu("语义分析",
