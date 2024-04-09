@@ -7,6 +7,7 @@ require fyne.io/fyne/v2 v2.4.4
 require (
 	fyne.io/systray v1.10.1-0.20231115130155-104f5ef7839e // indirect
 	github.com/TheTitanrain/w32 v0.0.0-20180517000239-4f5cfb03fabf // indirect
+	github.com/awalterschulze/gographviz v2.0.3+incompatible // indirect
 	github.com/cznic/fileutil v0.0.0-20181122101858-4d67cfea8c87 // indirect
 	github.com/cznic/golex v0.0.0-20181122101858-9c343928389c // indirect
 	github.com/cznic/lex v0.0.0-20181122101858-ce0fb5e9bb1b // indirect

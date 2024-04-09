@@ -2,9 +2,15 @@ package util
 
 import (
 	"fmt"
+	"github.com/awalterschulze/gographviz"
+	"log"
+	"os/exec"
+	"strconv"
+	"strings"
 )
 
 var treeStr string
+var count int
 
 type TreeNode struct {
 	Value    string
@@ -17,17 +23,40 @@ func NewTreeNode(value string) *TreeNode {
 
 // AddChild 添加子节点
 func (node *TreeNode) AddChild(child *TreeNode) {
-	node.Children = append(node.Children, child)
+	if child != nil {
+		node.Children = append(node.Children, child)
+	}
+
 }
 
 // GetTree 获取树结构的字符串
 func GetTree(node *TreeNode) string {
+	count = 0
+	treeStr = ""
 	PrintTree(node, "", true)
+
+	//绘制图片
+	graphAst := gographviz.NewEscape()
+	graphAst.SetName("syntax_tree")
+	graphAst.SetDir(true)
+	AddNode(graphAst, node, "")
+
+	graph := graphAst.String()
+
+	cmd := exec.Command("dot", "-Tpng", "-o", "pkg/tree_img/tree_"+GetTIme()+".png")
+	cmd.Stdin = strings.NewReader(graph)
+	if err := cmd.Run(); err != nil {
+		log.Println(err)
+	}
+
 	return treeStr
 }
 
 // PrintTree 递归遍历并打印树
 func PrintTree(node *TreeNode, prefix string, isLast bool) {
+	if node == nil {
+		return
+	}
 	// 打印当前节点
 	if isLast {
 		//fmt.Printf("%s└── %s\n", prefix, node.Value)
@@ -43,4 +72,17 @@ func PrintTree(node *TreeNode, prefix string, isLast bool) {
 	for i, child := range node.Children {
 		PrintTree(child, prefix, i == len(node.Children)-1)
 	}
+}
+
+func AddNode(graph *gographviz.Escape, node *TreeNode, parent string) string {
+	nodeName := "node" + strconv.Itoa(count)
+	count++
+	graph.AddNode("G", nodeName, map[string]string{"label": node.Value})
+	if parent != "" {
+		graph.AddEdge(parent, nodeName, true, nil)
+	}
+	for _, child := range node.Children {
+		AddNode(graph, child, nodeName)
+	}
+	return nodeName
 }

@@ -4,8 +4,8 @@ type Token int
 
 // 关键字
 const (
-	EOF     = 0
-	ILLEGAL = -1
+	EOF     = -1
+	ILLEGAL = -2
 	CHAR    = iota + 101
 	STRING
 	INT
@@ -15,6 +15,7 @@ const (
 	BREAK
 	CONST
 	RETURN
+	VAR
 	VOID
 	MAIN
 	CONTINUE
@@ -100,6 +101,7 @@ var TokenMap = map[string]Token{
 	"false":    FALSE,
 	"break":    BREAK,
 	"const":    CONST,
+	"var":      VAR,
 	"return":   RETURN,
 	"void":     VOID,
 	"main":     MAIN,

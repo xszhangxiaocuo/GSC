@@ -65,7 +65,7 @@ func (handler *MenuHandler) LexerHandler(input *widget.Entry, output *widget.Ent
 
 			if tokenid != consts.TokenMap["//"] && tokenid != consts.TokenMap["/**/"] && tokenid != consts.ILLEGAL { //忽略注释和错误
 				result = result + fmt.Sprintf("%d:%d\t\t%d\t\t\t%s\n", pos.Line, pos.Column, tokenid, token)
-				handler.Parser.Token = append(handler.Parser.Token, compiler.TokenNode{Pos: pos, Type: tokenid, Value: token})
+				handler.Parser.Token = append(handler.Parser.Token, util.TokenNode{Pos: pos, Type: tokenid, Value: token})
 			}
 
 		}
@@ -102,5 +102,6 @@ func (handler *MenuHandler) ParserHandler(input *widget.Entry, output *widget.En
 			msg += err
 		}
 		bottomOutput.SetText(msg)
+		handler.LexerFlag = false
 	}
 }

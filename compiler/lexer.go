@@ -3,20 +3,15 @@ package compiler
 import (
 	"bufio"
 	"complier/pkg/consts"
+	"complier/util"
 	"io"
 	"log"
 	"unicode"
 )
 
-// Position 当前读到的行列
-type Position struct {
-	Line   int
-	Column int
-}
-
 // Lexer 词法分析器当前状态
 type Lexer struct {
-	pos        Position
+	pos        util.Position
 	reader     *bufio.Reader
 	numberFlag int //识别数字时标识当前是几进制
 }
@@ -24,7 +19,7 @@ type Lexer struct {
 // NewLexer 传入源文件reader创建一个Lexer
 func NewLexer(reader io.Reader) *Lexer {
 	return &Lexer{
-		pos:    Position{1, 0},
+		pos:    util.Position{1, 0},
 		reader: bufio.NewReader(reader),
 	}
 }
@@ -110,7 +105,7 @@ func (l *Lexer) peek(n int) ([]byte, error) {
 }
 
 // Lex 一个字符一个字符扫描，识别出一个token后返回行列位置，token的值和编码
-func (l *Lexer) Lex() (Position, consts.Token, string, error) {
+func (l *Lexer) Lex() (util.Position, consts.Token, string, error) {
 	for {
 		var tokenid consts.Token
 		var token string
