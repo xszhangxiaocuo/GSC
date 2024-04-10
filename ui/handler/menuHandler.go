@@ -97,10 +97,16 @@ func (handler *MenuHandler) ParserHandler(input *widget.Entry, output *widget.En
 		tree := handler.Parser.StartParse()
 		output.SetText(tree)
 
-		msg := fmt.Sprintf("---------语法分析完成---------\n%d error(s)\n\n行:列\t\t种别码\ttoken值\t错误信息\n", len(handler.Parser.Logger.Errs))
-		for _, err := range handler.Parser.Logger.Errs {
-			msg += err
+		errs := len(handler.Parser.Logger.Errs)
+		msg := fmt.Sprintf("---------语法分析完成---------\n%d error(s)\n\n", errs)
+
+		if errs != 0 {
+			msg += fmt.Sprintf("行:列\t\t种别码\ttoken值\t错误信息\n")
+			for _, err := range handler.Parser.Logger.Errs {
+				msg += err
+			}
 		}
+
 		bottomOutput.SetText(msg)
 		handler.LexerFlag = false
 	}

@@ -116,13 +116,11 @@ func (p *Parser) program() *util.TreeNode {
 		}
 		switch state {
 		case 0:
-			token = p.nextToken()
+			token = p.peek(1)
 			if p.match(token, consts.TokenMap["main"]) {
 				state = 1
-				p.backup()
 				continue
 			}
-			p.backup()
 			statement, node := p.declarationStatement()
 			if statement {
 				root.AddChild(node)
@@ -196,16 +194,13 @@ func (p *Parser) declarationStatement() (ok bool, root *util.TreeNode) {
 		}
 		switch state {
 		case 0:
-			token = p.nextToken()
+			token = p.peek(1)
 			if p.match(token, consts.TokenMap["var"]) || p.match(token, consts.TokenMap["const"]) { //值声明
 				state = 1
-				p.backup()
 			} else if p.isFuncType(token) {
 				state = 2
-				p.backup()
 			} else {
 				state = -1
-				p.backup()
 				ok = false
 				root.AddChild(util.NewTreeNode("ε"))
 			}
@@ -215,7 +210,7 @@ func (p *Parser) declarationStatement() (ok bool, root *util.TreeNode) {
 				root.AddChild(node)
 			}
 		case 2:
-			if flag, node = p.declarationFunction(); flag {
+			if flag, node = p.declarationFunctionStatement(); flag {
 				state = -1
 				root.AddChild(node)
 			}
@@ -621,6 +616,41 @@ func (p *Parser) declarationValue() (ok bool, root *util.TreeNode) {
 		}
 	}
 
+	return
+}
+
+// declarationFunctionStatement <函数声明语句>
+func (p *Parser) declarationFunctionStatement() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<函数声明语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			if flag, node = p.declarationFunction(); flag {
+				state = 1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 1:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[";"]) {
+				state = -1
+				node = util.NewTreeNode(";")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "函数声明语句缺少 ; ")
+			}
+		}
+	}
 	return
 }
 
