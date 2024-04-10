@@ -5,8 +5,8 @@
 在Linux中运行`sudo apt-get install graphviz`安装绘图工具
 
 运行`go get -u github.com/awalterschulze/gographviz`导入绘图的第三方库
-
-
+<br>
+<br>
 ### 🫥Sample语言文法
 
 <程序>→<声明语句>main()<复合语句><函数块>
