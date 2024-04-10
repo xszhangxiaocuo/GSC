@@ -63,10 +63,10 @@ func (p *Parser) isConstType(token util.TokenNode) bool {
 	return t == consts.TokenMap["integer"] || t == consts.TokenMap["floatnumber"] || t == consts.TokenMap["character"]
 }
 
-// isSemicolon 判断token是否是分号
-func (p *Parser) isSemicolon(token util.TokenNode) bool {
+// isVarType 判断token是否是变量类型
+func (p *Parser) isVarType(token util.TokenNode) bool {
 	t := token.Type
-	return t == consts.TokenMap[";"]
+	return t == consts.TokenMap["int"] || t == consts.TokenMap["float"] || t == consts.TokenMap["char"]
 }
 
 // isRelaOpe 判断token是否是关系运算符
@@ -84,7 +84,13 @@ func (p *Parser) isDeclarationValue(token util.TokenNode) bool {
 // isStatement 判断token是否是执行语句
 func (p *Parser) isExeStatement(token util.TokenNode) bool {
 	t := token.Type
-	return t == consts.TokenMap["{"] || t == consts.TokenMap["identifier"] || t == consts.TokenMap["if"] || t == consts.TokenMap["else"] || t == consts.TokenMap["do"] || t == consts.TokenMap["while"] || t == consts.TokenMap["for"] || t == consts.TokenMap["return"]
+	return t == consts.TokenMap["{"] || t == consts.TokenMap["identifier"] || t == consts.TokenMap["if"] || t == consts.TokenMap["do"] || t == consts.TokenMap["while"] || t == consts.TokenMap["for"] || t == consts.TokenMap["return"]
+}
+
+// isControlStatement 判断token是否是控制语句
+func (p *Parser) isControlStatement(token util.TokenNode) bool {
+	t := token.Type
+	return t == consts.TokenMap["if"] || t == consts.TokenMap["do"] || t == consts.TokenMap["while"] || t == consts.TokenMap["for"] || t == consts.TokenMap["return"]
 }
 
 // backup 回退一个token
@@ -176,13 +182,13 @@ func (p *Parser) program() *util.TreeNode {
 
 // declarationStatement <声明语句>
 func (p *Parser) declarationStatement() (ok bool, root *util.TreeNode) {
+	ok = true
 	nodeName := "<声明语句>"
 	root = util.NewTreeNode(nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
 	state := 0
 	var flag bool
-	ok = true
 	for state != -1 {
 		if p.isFinish(token) {
 			state = -1
@@ -238,7 +244,7 @@ func (p *Parser) compoundStatement() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("{")
 				root.AddChild(node)
 			} else {
-				state = 1
+				state = -1
 				p.Logger.AddParserErr(token, nodeName, "缺少 { ")
 			}
 		case 1:
@@ -246,9 +252,10 @@ func (p *Parser) compoundStatement() (ok bool, root *util.TreeNode) {
 			if p.match(token, consts.TokenMap["}"]) {
 				state = 2
 			} else if flag, node = p.statementTable(); flag {
+				state = 2
 				root.AddChild(node)
 			} else {
-				state = 2
+				state = -1
 				ok = false
 			}
 		case 2:
@@ -283,11 +290,17 @@ func (p *Parser) statementTable() (ok bool, root *util.TreeNode) {
 			if flag, node = p.statement(); flag {
 				state = 1
 				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
 			}
 		case 1:
-			if flagNull, flag, node = p.statementTable0(); !flagNull && flag { //不为空且没有错误
+			if flagNull, flag, node = p.statementTable0(); flag { //不为空且没有错误
 				state = -1
-				root.AddChild(node)
+				if !flagNull {
+					root.AddChild(node)
+				}
+
 			} else {
 				state = -1
 			}
@@ -366,9 +379,10 @@ func (p *Parser) statement() (ok bool, root *util.TreeNode) {
 }
 
 // exeStatement <执行语句>
-func (p *Parser) exeStatement() (bool, *util.TreeNode) {
+func (p *Parser) exeStatement() (ok bool, root *util.TreeNode) {
+	ok = true
 	nodeName := "<执行语句>"
-	root := util.NewTreeNode(nodeName)
+	root = util.NewTreeNode(nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
 	state := 0
@@ -382,20 +396,40 @@ func (p *Parser) exeStatement() (bool, *util.TreeNode) {
 				state = 1
 			} else if p.match(token, consts.TokenMap["identifier"]) {
 				state = 2
+			} else if p.isControlStatement(token) {
+				state = 3
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName)
 			}
 		case 1:
 			if flag, node = p.compoundStatement(); flag {
 				state = -1
 				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
 			}
 		case 2:
 			if flag, node = p.dataHandleStatement(); flag {
 				state = -1
 				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 3:
+			if flag, node = p.controlStatement(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
 			}
 		}
 	}
-	return true, root
+	return
 }
 
 // dataHandleStatement <数据处理语句>
@@ -427,12 +461,12 @@ func (p *Parser) dataHandleStatement() (ok bool, root *util.TreeNode) {
 				p.Logger.AddParserErr(token, nodeName)
 			}
 		case 2:
-			if flag, node = p.assignmentExp(); flag {
+			if flag, node = p.assignmentStatement(); flag {
 				state = -1
 				root.AddChild(node)
 			}
 		case 3:
-			if flag, node = p.funcCall(); flag {
+			if flag, node = p.funcCallStatement(); flag {
 				state = -1
 				root.AddChild(node)
 			}
@@ -442,20 +476,124 @@ func (p *Parser) dataHandleStatement() (ok bool, root *util.TreeNode) {
 }
 
 // functionBlock <函数块>
-func (p *Parser) functionBlock() (bool, *util.TreeNode) {
+func (p *Parser) functionBlock() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<函数块>"
+	root = util.NewTreeNode(nodeName)
+	var token util.TokenNode
+	var node *util.TreeNode
+	state := 0
+	var flag bool
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.isFuncType(token) {
+				state = 1
+			} else {
+				state = -1
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			if flag, node = p.functionDefine(); flag {
+				state = 2
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 2:
+			if flag, node = p.functionBlock(); flag {
+				state = -1
+				root.AddChild(node)
+			}
+		}
+	}
 
-	return true, nil
+	return
+}
+
+// functionDefine <函数定义>
+func (p *Parser) functionDefine() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<函数定义>"
+	root = util.NewTreeNode(nodeName)
+	var token util.TokenNode
+	var node *util.TreeNode
+	state := 0
+	var flag bool
+	for state != -1 {
+		switch state {
+		case 0:
+			if flag, node = p.funcType(); flag {
+				state = 1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 1:
+			if flag, node = p.Var(); flag {
+				state = 2
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 2:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["("]) {
+				state = 3
+				node = util.NewTreeNode("(")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少 (")
+			}
+		case 3:
+			if flag, node = p.formalParamList(); flag {
+				state = 4
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 4:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[")"]) {
+				state = 5
+				node = util.NewTreeNode(")")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少 )")
+			}
+		case 5:
+			if flag, node = p.compoundStatement(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+
+	return
 }
 
 // declarationValue <值声明>
 func (p *Parser) declarationValue() (ok bool, root *util.TreeNode) {
+	ok = true
 	nodeName := "<值声明>"
 	root = util.NewTreeNode(nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
 	state := 0
 	var flag bool
-	ok = true
 	for state != -1 {
 		switch state {
 		case 0:
@@ -483,15 +621,69 @@ func (p *Parser) declarationValue() (ok bool, root *util.TreeNode) {
 		}
 	}
 
-	return ok, root
+	return
 }
 
 // declarationFunction <函数声明>
-func (p *Parser) declarationFunction() (bool, *util.TreeNode) {
+func (p *Parser) declarationFunction() (ok bool, root *util.TreeNode) {
+	ok = true
 	nodeName := "<函数声明>"
-	root := util.NewTreeNode(nodeName)
-
-	return true, root
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.nextToken()
+			if p.isFuncType(token) {
+				state = 1
+				node = util.NewTreeNode(token.Value)
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "函数类型错误")
+			}
+		case 1:
+			if flag, node = p.Var(); flag {
+				state = 2
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 2:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["("]) {
+				state = 3
+				node = util.NewTreeNode("(")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, " ( 缺失")
+			}
+		case 3:
+			if flag, node = p.formalParamList(); flag {
+				state = 4
+				root.AddChild(node)
+			}
+		case 4:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[")"]) {
+				state = -1
+				node = util.NewTreeNode(")")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, " ) 缺失")
+			}
+		}
+	}
+	return
 }
 
 // declarationConst <常量声明>
@@ -774,6 +966,32 @@ func (p *Parser) charConst() (bool, *util.TreeNode) {
 	return true, root
 }
 
+// funcType <函数类型>
+func (p *Parser) funcType() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<函数类型>"
+	root = util.NewTreeNode(nodeName)
+	var token util.TokenNode
+	state := 0
+	var node *util.TreeNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.nextToken()
+			if p.isFuncType(token) {
+				state = -1
+				node = util.NewTreeNode(token.Value)
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName)
+			}
+		}
+	}
+	return
+}
+
 // declarationVar <变量声明>
 func (p *Parser) declarationVar() (bool, *util.TreeNode) {
 	nodeName := "<变量声明>"
@@ -807,9 +1025,10 @@ func (p *Parser) declarationVar() (bool, *util.TreeNode) {
 }
 
 // varType <变量类型>
-func (p *Parser) varType() (bool, *util.TreeNode) {
+func (p *Parser) varType() (ok bool, root *util.TreeNode) {
+	ok = true
 	nodeName := "<变量类型>"
-	root := util.NewTreeNode(nodeName)
+	root = util.NewTreeNode(nodeName)
 	state := 0
 	var node *util.TreeNode
 	var token util.TokenNode
@@ -817,22 +1036,18 @@ func (p *Parser) varType() (bool, *util.TreeNode) {
 		switch state {
 		case 0:
 			token = p.nextToken()
-			if p.match(token, consts.TokenMap["int"]) {
+			if p.isVarType(token) {
 				state = -1
-				node = util.NewTreeNode("int")
+				node = util.NewTreeNode(token.Value)
 				root.AddChild(node)
-			} else if p.match(token, consts.TokenMap["char"]) {
+			} else {
 				state = -1
-				node = util.NewTreeNode("char")
-				root.AddChild(node)
-			} else if p.match(token, consts.TokenMap["float"]) {
-				state = -1
-				node = util.NewTreeNode("float")
-				root.AddChild(node)
+				ok = false
+				p.Logger.AddParserErr(token, nodeName)
 			}
 		}
 	}
-	return true, root
+	return
 }
 
 // declarationVarTable <变量声明表>
@@ -1100,7 +1315,13 @@ func (p *Parser) factor() (bool, *util.TreeNode) {
 			} else if p.isConstType(token) {
 				state = 2
 			} else if p.match(token, consts.TokenMap["identifier"]) {
-				state = 3
+				if p.match(p.peek(2), consts.TokenMap["("]) {
+					state = 5
+				} else {
+					state = 3
+				}
+			} else if p.match(token, consts.TokenMap["-"]) || p.match(token, consts.TokenMap["+"]) || p.match(token, consts.TokenMap["!"]) {
+				state = 6
 			}
 		case 1:
 			if flag, node = p.arithmeticExp(); flag {
@@ -1110,13 +1331,11 @@ func (p *Parser) factor() (bool, *util.TreeNode) {
 		case 2:
 			if flag, node = p.Const(); flag {
 				state = -1
-				node = util.NewTreeNode(token.Value)
 				root.AddChild(node)
 			}
 		case 3:
 			if flag, node = p.Var(); flag {
-				state = 5
-				node = util.NewTreeNode(token.Value)
+				state = -1
 				root.AddChild(node)
 			}
 		case 4:
@@ -1127,6 +1346,11 @@ func (p *Parser) factor() (bool, *util.TreeNode) {
 				root.AddChild(node)
 			}
 		case 5:
+			if flag, node = p.funcCall(); flag {
+				state = -1
+				root.AddChild(node)
+			}
+		case 6:
 			if flag, node = p.factor0(); flag {
 				state = -1
 				root.AddChild(node)
@@ -1148,26 +1372,14 @@ func (p *Parser) factor0() (bool, *util.TreeNode) {
 		switch state {
 		case 0:
 			token = p.nextToken()
-			if p.match(token, consts.TokenMap["("]) {
+			if p.match(token, consts.TokenMap["+"]) || p.match(token, consts.TokenMap["-"]) || p.match(token, consts.TokenMap["!"]) {
 				state = 1
-				node = util.NewTreeNode("(")
-				root.AddChild(node)
-			} else {
-				state = -1
-				p.backup()
-				node = util.NewTreeNode("ε")
+				node = util.NewTreeNode(token.Value)
 				root.AddChild(node)
 			}
 		case 1:
-			if flag, node = p.actualParamList(); flag {
-				state = 2
-				root.AddChild(node)
-			}
-		case 2:
-			token = p.nextToken()
-			if p.match(token, consts.TokenMap[")"]) {
+			if flag, node = p.factor(); flag {
 				state = -1
-				node = util.NewTreeNode(")")
 				root.AddChild(node)
 			}
 		}
@@ -1378,27 +1590,14 @@ func (p *Parser) boolFactor() (bool, *util.TreeNode) {
 	state := 0
 	var flag bool
 	var node *util.TreeNode
-	var token util.TokenNode
 	for state != -1 {
 		switch state {
 		case 0:
-			token = p.peek(1)
-
-			if p.match(token, consts.TokenMap["!"]) {
-				p.nextToken()
+			if flag, node = p.arithmeticExp(); flag {
 				state = 1
-				node = util.NewTreeNode("!")
-				root.AddChild(node)
-			} else if flag, node = p.arithmeticExp(); flag {
-				state = 2
 				root.AddChild(node)
 			}
 		case 1:
-			if flag, node = p.boolExp(); flag {
-				state = 2
-				root.AddChild(node)
-			}
-		case 2:
 			if flag, node = p.boolFactor0(); flag {
 				state = -1
 				root.AddChild(node)
@@ -1443,6 +1642,33 @@ func (p *Parser) boolFactor0() (bool, *util.TreeNode) {
 	return true, root
 }
 
+// assignmentStatement <赋值语句>
+func (p *Parser) assignmentStatement() (bool, *util.TreeNode) {
+	nodeName := "<赋值语句>"
+	root := util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			if flag, node = p.assignmentExp(); flag {
+				state = 1
+				root.AddChild(node)
+			}
+		case 1:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[";"]) {
+				state = -1
+				node = util.NewTreeNode(";")
+				root.AddChild(node)
+			}
+		}
+	}
+	return true, root
+}
+
 // assignmentExp <赋值表达式>
 func (p *Parser) assignmentExp() (bool, *util.TreeNode) {
 	nodeName := "<赋值表达式>"
@@ -1468,15 +1694,8 @@ func (p *Parser) assignmentExp() (bool, *util.TreeNode) {
 				root.AddChild(node)
 			}
 		case 2:
-			if flag, node = p.boolExp(); flag {
-				state = 3
-				root.AddChild(node)
-			}
-		case 3:
-			token = p.nextToken()
-			if p.match(token, consts.TokenMap[";"]) {
+			if flag, node = p.assignmentExp0(); flag {
 				state = -1
-				node = util.NewTreeNode(";")
 				root.AddChild(node)
 			}
 		}
@@ -1484,18 +1703,904 @@ func (p *Parser) assignmentExp() (bool, *util.TreeNode) {
 	return true, root
 }
 
-// funcCall <函数调用>
-func (p *Parser) funcCall() (bool, *util.TreeNode) {
-	nodeName := "<函数调用>"
+// assignmentExp0 <赋值表达式0>
+func (p *Parser) assignmentExp0() (bool, *util.TreeNode) {
+	nodeName := "<赋值表达式0>"
 	root := util.NewTreeNode(nodeName)
-
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.match(token, consts.TokenMap["identifier"]) && p.match(p.peek(2), consts.TokenMap["("]) {
+				state = 2
+			} else {
+				state = 1
+			}
+		case 1:
+			if flag, node = p.boolExp(); flag {
+				state = -1
+				root.AddChild(node)
+			}
+		case 2:
+			if flag, node = p.funcCall(); flag {
+				state = -1
+				root.AddChild(node)
+			}
+		}
+	}
 	return true, root
 }
 
-// actualParamList <实参列表>
-func (p *Parser) actualParamList() (bool, *util.TreeNode) {
-	nodeName := "<实参列表>"
-	root := util.NewTreeNode(nodeName)
+// funcCallStatement <函数调用语句>
+func (p *Parser) funcCallStatement() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<函数调用语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.match(token, consts.TokenMap["identifier"]) {
+				state = 1
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "函数变量名推断错误")
+			}
+		case 1:
+			if flag, node = p.funcCall(); flag {
+				state = 2
+				root.AddChild(node)
+			} else {
+				state = -1
+			}
+		case 2:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[";"]) {
+				state = -1
+				node = util.NewTreeNode(";")
+				root.AddChild(node)
+			} else {
+				state = -1
+				p.Logger.AddParserErr(token, nodeName, "函数调用语句缺失 ; ")
+			}
+		}
+	}
+	return
+}
 
-	return true, root
+// funcCall <函数调用>
+func (p *Parser) funcCall() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<函数调用>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			if flag, node = p.Var(); flag {
+				state = 1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "函数变量名推断错误")
+			}
+		case 1:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["("]) {
+				state = 2
+				node = util.NewTreeNode("(")
+				root.AddChild(node)
+			} else {
+				state = -1
+				p.Logger.AddParserErr(token, nodeName, " ( 缺失")
+			}
+		case 2:
+			if flag, node = p.actualParamList(); flag {
+				state = 3
+				root.AddChild(node)
+			} else {
+				state = -1
+			}
+		case 3:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[")"]) {
+				state = -1
+				node = util.NewTreeNode(")")
+				root.AddChild(node)
+			} else {
+				state = -1
+				p.Logger.AddParserErr(token, nodeName, " ) 缺失")
+			}
+		}
+	}
+	return
+}
+
+// actualParamList <实参列表>
+func (p *Parser) actualParamList() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<实参列表>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.isConstType(token) || p.match(token, consts.TokenMap["identifier"]) || p.match(token, consts.TokenMap["("]) {
+				state = 1
+			} else {
+				state = -1
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			if flag, node = p.actualParam(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+			}
+		}
+	}
+	return
+}
+
+// actualParam <实参>
+func (p *Parser) actualParam() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<实参>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.isConstType(token) || p.match(token, consts.TokenMap["identifier"]) || p.match(token, consts.TokenMap["("]) {
+				state = 1
+			} else {
+				state = -1
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			if flag, node = p.boolExp(); flag {
+				state = 2
+				root.AddChild(node)
+			} else {
+				state = -1
+			}
+		case 2:
+			if flag, node = p.actualParam0(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+			}
+		}
+	}
+	return
+}
+
+// actualParam0 <实参0>
+func (p *Parser) actualParam0() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<实参0>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.match(token, consts.TokenMap[","]) {
+				token = p.nextToken()
+				state = 1
+				node = util.NewTreeNode(",")
+				root.AddChild(node)
+			} else {
+				state = -1
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			if flag, node = p.actualParam(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+			}
+		}
+	}
+	return
+}
+
+// formalParamList <形参列表>
+func (p *Parser) formalParamList() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<形参列表>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.isVarType(token) {
+				state = 1
+			} else {
+				state = -1
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			if flag, node = p.formalParam(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// formalParam <形参>
+func (p *Parser) formalParam() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<形参>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	for state != -1 {
+		switch state {
+		case 0:
+			if flag, node = p.varType(); flag {
+				state = 1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 1:
+			if flag, node = p.Var(); flag {
+				state = 2
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 2:
+			if flag, node = p.formalParam0(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// formalParam0 <形参0>
+func (p *Parser) formalParam0() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<形参0>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.match(token, consts.TokenMap[","]) {
+				p.nextToken()
+				state = 1
+				node = util.NewTreeNode(",")
+				root.AddChild(node)
+			} else {
+				state = -1
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			if flag, node = p.formalParam(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// controlStatement <控制语句>
+func (p *Parser) controlStatement() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<控制语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.match(token, consts.TokenMap["if"]) {
+				state = 1
+			} else if p.match(token, consts.TokenMap["for"]) {
+				state = 2
+			} else if p.match(token, consts.TokenMap["while"]) {
+				state = 3
+			} else if p.match(token, consts.TokenMap["do"]) {
+				state = 4
+			} else if p.match(token, consts.TokenMap["return"]) {
+				state = 5
+			} else {
+				state = -1
+				ok = false
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			if flag, node = p.IF(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 2:
+			if flag, node = p.FOR(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 3:
+			if flag, node = p.WHILE(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 4:
+			if flag, node = p.DoWHILE(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 5:
+			if flag, node = p.Return(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// IF <if语句>
+func (p *Parser) IF() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<if语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["if"]) {
+				state = 1
+				node = util.NewTreeNode("if")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少if")
+			}
+		case 1:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["("]) {
+				state = 2
+				node = util.NewTreeNode("(")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, " if 缺少 ( ")
+			}
+		case 2:
+			if flag, node = p.boolExp(); flag {
+				state = 3
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 3:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[")"]) {
+				state = 4
+				node = util.NewTreeNode(")")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, " 缺少 ) ")
+			}
+		case 4:
+			if flag, node = p.compoundStatement(); flag {
+				state = 5
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 5:
+			if flag, node = p.IfTail(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// IfTail <IfTail语句>
+func (p *Parser) IfTail() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<IfTail语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.match(token, consts.TokenMap["else"]) {
+				state = 1
+			} else {
+				state = -1
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["else"]) {
+				state = 2
+				node = util.NewTreeNode("else")
+				root.AddChild(node)
+			}
+		case 2:
+			if flag, node = p.IfTail0(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// IfTail0 <IfTail0语句>
+func (p *Parser) IfTail0() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<IfTail0语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.match(token, consts.TokenMap["{"]) {
+				state = 1
+			} else if p.match(token, consts.TokenMap["if"]) {
+				state = 2
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "else 缺少 { 或 if")
+			}
+		case 1:
+			if flag, node = p.compoundStatement(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 2:
+			if flag, node = p.IF(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// FOR <for语句>
+func (p *Parser) FOR() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<for语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["for"]) {
+				state = 1
+				node = util.NewTreeNode("for")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少for")
+			}
+		case 1:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["("]) {
+				state = 2
+				node = util.NewTreeNode("(")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, " for 缺少 ( ")
+			}
+		case 2:
+			if flag, node = p.assignmentExp(); flag {
+				state = 3
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 3:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[";"]) {
+				state = 4
+				node = util.NewTreeNode(";")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少 ; ")
+			}
+		case 4:
+			if flag, node = p.boolExp(); flag {
+				state = 5
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 5:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[";"]) {
+				state = 6
+				node = util.NewTreeNode(";")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少 ; ")
+			}
+		case 6:
+			if flag, node = p.assignmentExp(); flag {
+				state = 7
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 7:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[")"]) {
+				state = 8
+				node = util.NewTreeNode(")")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "for 缺少 ) ")
+			}
+		case 8:
+			if flag, node = p.compoundStatement(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// WHILE <while语句>
+func (p *Parser) WHILE() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<while语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["while"]) {
+				state = 1
+				node = util.NewTreeNode("while")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少while")
+			}
+		case 1:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["("]) {
+				state = 2
+				node = util.NewTreeNode("(")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, " while 缺少 ( ")
+			}
+		case 2:
+			if flag, node = p.boolExp(); flag {
+				state = 3
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 3:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[")"]) {
+				state = 4
+				node = util.NewTreeNode(")")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "while 缺少 ) ")
+			}
+		case 4:
+			if flag, node = p.compoundStatement(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// DoWHILE <DoWHILE语句>
+func (p *Parser) DoWHILE() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<DoWHILE语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["do"]) {
+				state = 1
+				node = util.NewTreeNode("do")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少do")
+			}
+		case 1:
+			if flag, node = p.compoundStatement(); flag {
+				state = 2
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 2:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["while"]) {
+				state = 3
+				node = util.NewTreeNode("while")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, " do 缺少 while")
+			}
+		case 3:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["("]) {
+				state = 4
+				node = util.NewTreeNode("(")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少 ( ")
+			}
+		case 4:
+			if flag, node = p.boolExp(); flag {
+				state = 5
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 5:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[")"]) {
+				state = 6
+				node = util.NewTreeNode(")")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "while 缺少 ) ")
+			}
+		case 6:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[";"]) {
+				state = -1
+				node = util.NewTreeNode(";")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "do while 缺少 ; ")
+			}
+		}
+	}
+	return
+}
+
+// Return <return语句>
+func (p *Parser) Return() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<Return语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["return"]) {
+				state = 1
+				node = util.NewTreeNode("return")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少return")
+			}
+		case 1:
+			if flag, node = p.Return0(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// Return0 <return语句0>
+func (p *Parser) Return0() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<return语句0>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.match(token, consts.TokenMap[";"]) {
+				state = 2
+			} else {
+				state = 1
+			}
+		case 1:
+			if flag, node = p.boolExp(); flag {
+				state = 2
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 2:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[";"]) {
+				state = -1
+				node = util.NewTreeNode(";")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "return 缺少 ; ")
+			}
+		}
+	}
+	return
 }
