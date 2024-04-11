@@ -128,7 +128,6 @@ func (p *Parser) program() *util.TreeNode {
 				state = 2
 				root.AddChild(util.NewTreeNode("main"))
 			} else {
-				p.backup()
 				state = 2
 				p.Logger.AddParserErr(token, nodeName, "缺少main函数")
 			}
@@ -138,7 +137,6 @@ func (p *Parser) program() *util.TreeNode {
 				state = 3
 				root.AddChild(util.NewTreeNode("("))
 			} else {
-				p.backup()
 				state = 3
 				p.Logger.AddParserErr(token, nodeName, "缺少 ( ")
 			}
@@ -148,7 +146,6 @@ func (p *Parser) program() *util.TreeNode {
 				state = 4
 				root.AddChild(util.NewTreeNode(")"))
 			} else {
-				p.backup()
 				state = 4
 				p.Logger.AddParserErr(token, nodeName, "缺少 ) ")
 			}
@@ -236,7 +233,6 @@ func (p *Parser) compoundStatement() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("{")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 { ")
@@ -259,7 +255,6 @@ func (p *Parser) compoundStatement() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("}")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 } ")
@@ -559,13 +554,12 @@ func (p *Parser) functionDefine() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("(")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 3
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 (")
 			}
 		case 3:
-			if flag, node = p.formalParamList(); flag {
+			if flag, node = p.defineFormalParamList(); flag {
 				state = 4
 				root.AddChild(node)
 			} else {
@@ -579,7 +573,6 @@ func (p *Parser) functionDefine() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(")")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 5
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 )")
@@ -668,7 +661,6 @@ func (p *Parser) declarationFunctionStatement() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(";")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ; ")
@@ -713,13 +705,12 @@ func (p *Parser) declarationFunction() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("(")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, " ( 缺失")
 			}
 		case 3:
-			if flag, node = p.formalParamList(); flag {
+			if flag, node = p.declFormalParamList(); flag {
 				state = 4
 				root.AddChild(node)
 			} else {
@@ -733,7 +724,6 @@ func (p *Parser) declarationFunction() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(")")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, " ) 缺失")
@@ -760,7 +750,6 @@ func (p *Parser) declarationConst() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("const")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少关键字const")
@@ -803,7 +792,6 @@ func (p *Parser) constType() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(token.Value)
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "类型缺失")
@@ -839,7 +827,6 @@ func (p *Parser) declarationConstTable() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("=")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 2
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 = ")
@@ -910,7 +897,6 @@ func (p *Parser) declarationConstTable1() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(",")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ; 或 ,")
@@ -988,7 +974,6 @@ func (p *Parser) Var() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(token.Value)
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少标识符")
@@ -1062,7 +1047,6 @@ func (p *Parser) numberConst() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(token.Value)
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少数值型常量")
@@ -1089,7 +1073,6 @@ func (p *Parser) charConst() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(token.Value)
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少字符型常量")
@@ -1143,7 +1126,6 @@ func (p *Parser) declarationVar() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("var")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少关键字 var ")
@@ -1279,7 +1261,6 @@ func (p *Parser) declarationVarTable0() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(",")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ; 或 ,")
@@ -1563,7 +1544,6 @@ func (p *Parser) factor() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(")")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ) ")
@@ -1607,7 +1587,6 @@ func (p *Parser) factor0() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(token.Value)
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "因子0缺少 + 或 - 或 !")
@@ -1959,7 +1938,6 @@ func (p *Parser) assignmentStatement() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(";")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ; ")
@@ -1987,7 +1965,6 @@ func (p *Parser) assignmentExp() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(token.Value)
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少标识符")
@@ -1999,7 +1976,6 @@ func (p *Parser) assignmentExp() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("=")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 2
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 = ")
@@ -2091,7 +2067,6 @@ func (p *Parser) funcCallStatement() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(";")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "函数调用语句缺少 ; ")
@@ -2127,7 +2102,6 @@ func (p *Parser) funcCall() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("(")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 2
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ( ")
@@ -2147,7 +2121,6 @@ func (p *Parser) funcCall() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(")")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ) ")
@@ -2267,10 +2240,10 @@ func (p *Parser) actualParam0() (ok bool, root *util.TreeNode) {
 	return
 }
 
-// formalParamList <形参列表>
-func (p *Parser) formalParamList() (ok bool, root *util.TreeNode) {
+// declFormalParamList <函数声明形参列表>
+func (p *Parser) declFormalParamList() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<形参列表>"
+	nodeName := "<函数声明形参列表>"
 	root = util.NewTreeNode(nodeName)
 	state := 0
 	var flag bool
@@ -2288,7 +2261,7 @@ func (p *Parser) formalParamList() (ok bool, root *util.TreeNode) {
 				root.AddChild(node)
 			}
 		case 1:
-			if flag, node = p.formalParam(); flag {
+			if flag, node = p.declFormalParam(); flag {
 				state = -1
 				root.AddChild(node)
 			} else {
@@ -2300,10 +2273,10 @@ func (p *Parser) formalParamList() (ok bool, root *util.TreeNode) {
 	return
 }
 
-// formalParam <形参>
-func (p *Parser) formalParam() (ok bool, root *util.TreeNode) {
+// declFormalParam <函数声明形参>
+func (p *Parser) declFormalParam() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<形参>"
+	nodeName := "<函数声明形参>"
 	root = util.NewTreeNode(nodeName)
 	state := 0
 	var flag bool
@@ -2319,7 +2292,7 @@ func (p *Parser) formalParam() (ok bool, root *util.TreeNode) {
 				ok = false
 			}
 		case 1:
-			if flag, node = p.formalParam0(); flag {
+			if flag, node = p.declFormalParam0(); flag {
 				state = -1
 				root.AddChild(node)
 			} else {
@@ -2331,10 +2304,10 @@ func (p *Parser) formalParam() (ok bool, root *util.TreeNode) {
 	return
 }
 
-// formalParam0 <形参0>
-func (p *Parser) formalParam0() (ok bool, root *util.TreeNode) {
+// declFormalParam0 <函数声明形参0>
+func (p *Parser) declFormalParam0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<形参0>"
+	nodeName := "<函数声明形参0>"
 	root = util.NewTreeNode(nodeName)
 	state := 0
 	var flag bool
@@ -2355,7 +2328,115 @@ func (p *Parser) formalParam0() (ok bool, root *util.TreeNode) {
 				root.AddChild(node)
 			}
 		case 1:
-			if flag, node = p.formalParam(); flag {
+			if flag, node = p.declFormalParam(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// defineFormalParamList <函数定义形参列表>
+func (p *Parser) defineFormalParamList() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<函数定义形参列表>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.isVarType(token) {
+				state = 1
+			} else {
+				state = -1
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			if flag, node = p.defineFormalParam(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// defineFormalParam <函数定义形参>
+func (p *Parser) defineFormalParam() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<函数定义形参>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	for state != -1 {
+		switch state {
+		case 0:
+			if flag, node = p.varType(); flag {
+				state = 1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 1:
+			if flag, node = p.Var(); flag {
+				state = 2
+				root.AddChild(node)
+			} else {
+				state = 2
+				ok = false
+			}
+		case 2:
+			if flag, node = p.defineFormalParam0(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		}
+	}
+	return
+}
+
+// defineFormalParam0 <函数定义形参0>
+func (p *Parser) defineFormalParam0() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<函数定义形参0>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var flag bool
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.peek(1)
+			if p.match(token, consts.TokenMap[","]) {
+				p.nextToken()
+				state = 1
+				node = util.NewTreeNode(",")
+				root.AddChild(node)
+			} else {
+				state = -1
+				node = util.NewTreeNode("ε")
+				root.AddChild(node)
+			}
+		case 1:
+			if flag, node = p.defineFormalParam(); flag {
 				state = -1
 				root.AddChild(node)
 			} else {
@@ -2390,6 +2471,10 @@ func (p *Parser) controlStatement() (ok bool, root *util.TreeNode) {
 				state = 4
 			} else if p.match(token, consts.TokenMap["return"]) {
 				state = 5
+			} else if p.match(token, consts.TokenMap["break"]) {
+				state = 6
+			} else if p.match(token, consts.TokenMap["continue"]) {
+				state = 7
 			} else {
 				state = -1
 				ok = false
@@ -2435,6 +2520,22 @@ func (p *Parser) controlStatement() (ok bool, root *util.TreeNode) {
 				state = -1
 				ok = false
 			}
+		case 6:
+			if flag, node = p.Break(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
+		case 7:
+			if flag, node = p.Continue(); flag {
+				state = -1
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+			}
 		}
 	}
 	return
@@ -2469,7 +2570,6 @@ func (p *Parser) IF() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("(")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 2
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, " if 缺少 ( ")
@@ -2489,7 +2589,6 @@ func (p *Parser) IF() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(")")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 4
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "if 缺少 ) ")
@@ -2542,7 +2641,6 @@ func (p *Parser) IfTail() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("else")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 2
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少else")
@@ -2632,7 +2730,6 @@ func (p *Parser) FOR() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("(")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, " for 缺少 ( ")
@@ -2652,7 +2749,6 @@ func (p *Parser) FOR() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(";")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 4
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ; ")
@@ -2672,7 +2768,6 @@ func (p *Parser) FOR() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(";")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 6
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ; ")
@@ -2692,7 +2787,6 @@ func (p *Parser) FOR() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(")")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 8
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "for 缺少 ) ")
@@ -2728,7 +2822,6 @@ func (p *Parser) WHILE() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("while")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少while")
@@ -2740,7 +2833,6 @@ func (p *Parser) WHILE() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("(")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 2
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, " while 缺少 ( ")
@@ -2760,7 +2852,6 @@ func (p *Parser) WHILE() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(")")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 4
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "while 缺少 ) ")
@@ -2796,7 +2887,6 @@ func (p *Parser) DoWHILE() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("do")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少do")
@@ -2816,7 +2906,6 @@ func (p *Parser) DoWHILE() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("while")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 3
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, " do 缺少 while")
@@ -2828,7 +2917,6 @@ func (p *Parser) DoWHILE() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("(")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 4
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少 ( ")
@@ -2848,7 +2936,6 @@ func (p *Parser) DoWHILE() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(")")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 6
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "while 缺少 ) ")
@@ -2860,7 +2947,6 @@ func (p *Parser) DoWHILE() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(";")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "do while 缺少 ; ")
@@ -2888,7 +2974,6 @@ func (p *Parser) Return() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode("return")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = 1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "缺少return")
@@ -2939,10 +3024,83 @@ func (p *Parser) Return0() (ok bool, root *util.TreeNode) {
 				node = util.NewTreeNode(";")
 				root.AddChild(node)
 			} else {
-				p.backup()
 				state = -1
 				ok = false
 				p.Logger.AddParserErr(token, nodeName, "return 缺少 ; ")
+			}
+		}
+	}
+	return
+}
+
+// Break <break语句>
+func (p *Parser) Break() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<break语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["break"]) {
+				state = 1
+				node = util.NewTreeNode("break")
+				root.AddChild(node)
+			} else {
+				state = 1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少break")
+			}
+		case 1:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[";"]) {
+				state = -1
+				node = util.NewTreeNode(";")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "break 缺少 ; ")
+			}
+		}
+	}
+	return
+}
+
+// Continue <continue语句>
+func (p *Parser) Continue() (ok bool, root *util.TreeNode) {
+	ok = true
+	nodeName := "<continue语句>"
+	root = util.NewTreeNode(nodeName)
+	state := 0
+	var node *util.TreeNode
+	var token util.TokenNode
+	for state != -1 {
+		switch state {
+		case 0:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap["continue"]) {
+				state = 1
+				node = util.NewTreeNode("continue")
+				root.AddChild(node)
+			} else {
+				state = 1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "缺少continue")
+			}
+		case 1:
+			token = p.nextToken()
+			if p.match(token, consts.TokenMap[";"]) {
+				state = -1
+				node = util.NewTreeNode(";")
+				root.AddChild(node)
+			} else {
+				state = -1
+				ok = false
+				p.Logger.AddParserErr(token, nodeName, "continue 缺少 ; ")
 			}
 		}
 	}
