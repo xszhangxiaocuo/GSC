@@ -173,9 +173,9 @@ func (l *Lexer) Lex() (util.Position, consts.Token, string, error) {
 				return startPos, tid, t, nil
 			} else {
 				startPos = l.pos
-				l.backup()
-				tokenid, token = l.lexIllegal()
-				return startPos, consts.TokenMap["ILLEGAL"], token, nil
+				//l.backup()
+				//tokenid, token = l.lexIllegal()
+				return startPos, consts.TokenMap["ILLEGAL"], string(r), nil
 			}
 		}
 	}
@@ -315,8 +315,8 @@ func (l *Lexer) lexSpecificNumber(state int) (consts.Token, string) {
 	token := ""
 
 	for state != -1 {
-		peeks, err := l.peek(1)
-		peek := rune(peeks[0])
+		//peeks, err := l.peek(1)
+		//peek := rune(peeks[0])
 		r, _, err := l.reader.ReadRune()
 		if err != nil {
 			if err == io.EOF { //文件末尾
@@ -340,15 +340,10 @@ func (l *Lexer) lexSpecificNumber(state int) (consts.Token, string) {
 			} else if r == 'e' || r == 'E' || (l.numberFlag == 16 && (r == 'p' || r == 'P')) { //指数形式
 				state = 3
 				token += string(r)
-			} else if l.isFinish(peek) { //一个整数读取完成
+			} else { //一个整数读取完成
 				state = -1
 				l.backup()
-				if tokenid != consts.TokenMap["ILLEGAL"] {
-					tokenid = consts.TokenMap["integer"]
-				}
-			} else {
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
+				tokenid = consts.TokenMap["integer"]
 			}
 
 		case 1:
@@ -367,15 +362,10 @@ func (l *Lexer) lexSpecificNumber(state int) (consts.Token, string) {
 			} else if r == 'e' || r == 'E' || (l.numberFlag == 16 && (r == 'p' || r == 'P')) { //指数形式
 				state = 3
 				token += string(r)
-			} else if l.isFinish(peek) { //一个小数读取完成
+			} else { //一个小数读取完成
 				state = -1
 				l.backup()
-				if tokenid != consts.TokenMap["ILLEGAL"] {
-					tokenid = consts.TokenMap["floatnumber"]
-				}
-			} else {
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
+				tokenid = consts.TokenMap["floatnumber"]
 			}
 
 		case 3:
@@ -391,15 +381,10 @@ func (l *Lexer) lexSpecificNumber(state int) (consts.Token, string) {
 		case 4:
 			if l.isNumber(r) {
 				token += string(r)
-			} else if l.isFinish(peek) { //一个指数形式的数读取完成
+			} else { //一个指数形式的数读取完成
 				state = -1
 				l.backup()
-				if tokenid != consts.TokenMap["ILLEGAL"] {
-					tokenid = consts.TokenMap["floatnumber"]
-				}
-			} else {
-				token += string(r)
-				tokenid = consts.TokenMap["ILLEGAL"]
+				tokenid = consts.TokenMap["floatnumber"]
 			}
 		}
 	}
