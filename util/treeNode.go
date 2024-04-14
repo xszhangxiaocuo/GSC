@@ -35,8 +35,6 @@ func GetTree(node *TreeNode) string {
 	treeStr = ""
 	PrintTree(node, "", true)
 
-	//DrawTree(node)
-
 	//绘制图片
 	graphAst := gographviz.NewEscape()
 	graphAst.SetName("syntax_tree")
