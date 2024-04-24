@@ -73,7 +73,7 @@
 
 <函数调用语句>→<函数调用>;
 
-<控制语句>→<if语句>|<for语句>|<while语句>|<do while语句>|<return语句>
+<控制语句>→<if语句>|<for语句>|<while语句>|<do while语句>|<return语句>|<break语句>|<continue语句>
 
 <函数调用>→<变量>(<实参列表>)
 
@@ -98,6 +98,10 @@
 <return 语句>→return<return 语句0>
 
 <return 语句0>;|<布尔表达式>;
+
+<break 语句>→break;
+
+<continue 语句>→continue;
 
 <函数块>→<函数定义><函数块>|ε
 
