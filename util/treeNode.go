@@ -13,12 +13,13 @@ var treeStr string
 var count int
 
 type TreeNode struct {
+	Token    *TokenNode
 	Value    string
 	Children []*TreeNode
 }
 
-func NewTreeNode(value string) *TreeNode {
-	return &TreeNode{Value: value}
+func NewTreeNode(token *TokenNode, value string) *TreeNode {
+	return &TreeNode{Token: token, Value: value}
 }
 
 // AddChild 添加子节点
