@@ -10,6 +10,7 @@ type Parser struct {
 	Token  []util.TokenNode
 	Index  int //当前的token下标
 	Logger *logger.Logger
+	AST    *util.TreeNode
 }
 
 func NewParser() *Parser {
@@ -18,9 +19,9 @@ func NewParser() *Parser {
 
 // StartParse 开始解析token生成语法树返回
 func (p *Parser) StartParse() string {
-	root := p.program()
+	p.AST = p.program()
 
-	return util.GetTree(root)
+	return util.GetTree(p.AST)
 }
 
 // nextToken 取得下一个token
@@ -102,7 +103,7 @@ func (p *Parser) backup() {
 
 // program <程序>
 func (p *Parser) program() *util.TreeNode {
-	nodeName := "<程序>"
+	nodeName := consts.PROGRAM
 	root := util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
@@ -173,7 +174,7 @@ func (p *Parser) program() *util.TreeNode {
 // declarationStatement <声明语句>
 func (p *Parser) declarationStatement() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<声明语句>"
+	nodeName := consts.DECLARATION
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
@@ -217,7 +218,7 @@ func (p *Parser) declarationStatement() (ok bool, root *util.TreeNode) {
 // compoundStatement <复合语句>
 func (p *Parser) compoundStatement() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<复合语句>"
+	nodeName := consts.COMPOUND_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
@@ -268,7 +269,7 @@ func (p *Parser) compoundStatement() (ok bool, root *util.TreeNode) {
 // statementTable <语句表>
 func (p *Parser) statementTable() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<语句表>"
+	nodeName := consts.STATEMENT_TABLE
 	root = util.NewTreeNode(nil, nodeName)
 	var node *util.TreeNode
 	var token util.TokenNode
@@ -310,7 +311,7 @@ func (p *Parser) statementTable() (ok bool, root *util.TreeNode) {
 // statementTable0 <语句表0>
 func (p *Parser) statementTable0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<语句表0>"
+	nodeName := consts.STATEMENT_TABLE_0
 	root = util.NewTreeNode(nil, nodeName)
 	var node *util.TreeNode
 	state := 0
@@ -343,7 +344,7 @@ func (p *Parser) statementTable0() (ok bool, root *util.TreeNode) {
 // statement <语句>
 func (p *Parser) statement() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<语句>"
+	nodeName := consts.STATEMENT
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
@@ -387,7 +388,7 @@ func (p *Parser) statement() (ok bool, root *util.TreeNode) {
 // exeStatement <执行语句>
 func (p *Parser) exeStatement() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<执行语句>"
+	nodeName := consts.EXECUTION_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
@@ -441,7 +442,7 @@ func (p *Parser) exeStatement() (ok bool, root *util.TreeNode) {
 // dataHandleStatement <数据处理语句>
 func (p *Parser) dataHandleStatement() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<数据处理语句>"
+	nodeName := consts.DATA_PROCESS_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
@@ -494,7 +495,7 @@ func (p *Parser) dataHandleStatement() (ok bool, root *util.TreeNode) {
 // functionBlock <函数块>
 func (p *Parser) functionBlock() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数块>"
+	nodeName := consts.FUNCTION_BLOCK
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
@@ -536,7 +537,7 @@ func (p *Parser) functionBlock() (ok bool, root *util.TreeNode) {
 // functionDefine <函数定义>
 func (p *Parser) functionDefine() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数定义>"
+	nodeName := consts.FUNCTION_DEF
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
@@ -607,7 +608,7 @@ func (p *Parser) functionDefine() (ok bool, root *util.TreeNode) {
 // declarationValue <值声明>
 func (p *Parser) declarationValue() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<值声明>"
+	nodeName := consts.VALUE_DECLARATION
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	var node *util.TreeNode
@@ -651,7 +652,7 @@ func (p *Parser) declarationValue() (ok bool, root *util.TreeNode) {
 // declarationFunctionStatement <函数声明语句>
 func (p *Parser) declarationFunctionStatement() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数声明语句>"
+	nodeName := consts.FUNCTION_DECL_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -687,7 +688,7 @@ func (p *Parser) declarationFunctionStatement() (ok bool, root *util.TreeNode) {
 // declarationFunction <函数声明>
 func (p *Parser) declarationFunction() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数声明>"
+	nodeName := consts.FUNCTION_DECL
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -749,7 +750,7 @@ func (p *Parser) declarationFunction() (ok bool, root *util.TreeNode) {
 // declarationConst <常量声明>
 func (p *Parser) declarationConst() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<常量声明>"
+	nodeName := consts.CONST_DECLARATION
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -791,7 +792,7 @@ func (p *Parser) declarationConst() (ok bool, root *util.TreeNode) {
 // constType <常量类型>
 func (p *Parser) constType() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<常量类型>"
+	nodeName := consts.CONST_TYPE
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var node *util.TreeNode
@@ -817,7 +818,7 @@ func (p *Parser) constType() (ok bool, root *util.TreeNode) {
 // declarationConstTable <常量声明表>
 func (p *Parser) declarationConstTable() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<常量声明表>"
+	nodeName := consts.CONST_TABLE
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	state := 0
@@ -860,7 +861,7 @@ func (p *Parser) declarationConstTable() (ok bool, root *util.TreeNode) {
 // declarationConstTable0 <常量声明表0>
 func (p *Parser) declarationConstTable0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<常量声明表0>"
+	nodeName := consts.CONST_TABLE_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -891,7 +892,7 @@ func (p *Parser) declarationConstTable0() (ok bool, root *util.TreeNode) {
 // declarationConstTable1 <常量声明表1>
 func (p *Parser) declarationConstTable1() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<常量声明表1>"
+	nodeName := consts.CONST_TABLE_1
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	state := 0
@@ -931,7 +932,7 @@ func (p *Parser) declarationConstTable1() (ok bool, root *util.TreeNode) {
 // declarationConstTableValue <常量声明表值>
 func (p *Parser) declarationConstTableValue() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<常量声明表值>"
+	nodeName := consts.CONST_TABLE_VALUE
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var token util.TokenNode
@@ -974,7 +975,7 @@ func (p *Parser) declarationConstTableValue() (ok bool, root *util.TreeNode) {
 // Var <变量>
 func (p *Parser) Var() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<变量>"
+	nodeName := consts.VARIABLE
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	state := 0
@@ -1000,7 +1001,7 @@ func (p *Parser) Var() (ok bool, root *util.TreeNode) {
 // Const <常量>
 func (p *Parser) Const() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<常量>"
+	nodeName := consts.CONSTANT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var node *util.TreeNode
@@ -1043,7 +1044,7 @@ func (p *Parser) Const() (ok bool, root *util.TreeNode) {
 // numberConst <数值型常量>
 func (p *Parser) numberConst() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<数值型常量>"
+	nodeName := consts.NUM_CONSTANT
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	state := 0
@@ -1073,7 +1074,7 @@ func (p *Parser) numberConst() (ok bool, root *util.TreeNode) {
 // charConst <字符型常量>
 func (p *Parser) charConst() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<字符型常量>"
+	nodeName := consts.CHAR_CONSTANT
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	state := 0
@@ -1099,7 +1100,7 @@ func (p *Parser) charConst() (ok bool, root *util.TreeNode) {
 // funcType <函数类型>
 func (p *Parser) funcType() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数类型>"
+	nodeName := consts.FUNCTION_TYPE
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	state := 0
@@ -1125,7 +1126,7 @@ func (p *Parser) funcType() (ok bool, root *util.TreeNode) {
 // declarationVar <变量声明>
 func (p *Parser) declarationVar() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<变量声明>"
+	nodeName := consts.VARIABLE_DECL
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1168,7 +1169,7 @@ func (p *Parser) declarationVar() (ok bool, root *util.TreeNode) {
 // varType <变量类型>
 func (p *Parser) varType() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<变量类型>"
+	nodeName := consts.VARIABLE_TYPE
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var node *util.TreeNode
@@ -1194,7 +1195,7 @@ func (p *Parser) varType() (ok bool, root *util.TreeNode) {
 // declarationVarTable <变量声明表>
 func (p *Parser) declarationVarTable() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<变量声明表>"
+	nodeName := consts.VARIABLE_TABLE
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1225,7 +1226,7 @@ func (p *Parser) declarationVarTable() (ok bool, root *util.TreeNode) {
 // declarationSingleVar <单变量声明>
 func (p *Parser) declarationSingleVar() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<单变量声明>"
+	nodeName := consts.SINGLE_VARIABLE
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1256,7 +1257,7 @@ func (p *Parser) declarationSingleVar() (ok bool, root *util.TreeNode) {
 // declarationVarTable0 <变量声明表0>
 func (p *Parser) declarationVarTable0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<变量声明表0>"
+	nodeName := consts.VARIABLE_TABLE_0
 	root = util.NewTreeNode(nil, nodeName)
 	var token util.TokenNode
 	state := 0
@@ -1296,7 +1297,7 @@ func (p *Parser) declarationVarTable0() (ok bool, root *util.TreeNode) {
 // declarationSingleVar0 <单变量声明0>
 func (p *Parser) declarationSingleVar0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<单变量声明0>"
+	nodeName := consts.SINGLE_VARIABLE_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1332,7 +1333,7 @@ func (p *Parser) declarationSingleVar0() (ok bool, root *util.TreeNode) {
 // arithmeticExp <算术表达式>
 func (p *Parser) arithmeticExp() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<算术表达式>"
+	nodeName := consts.ARITHMETIC_EXPR
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1363,7 +1364,7 @@ func (p *Parser) arithmeticExp() (ok bool, root *util.TreeNode) {
 // arithmeticExp0 <算术表达式0>
 func (p *Parser) arithmeticExp0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<算术表达式0>"
+	nodeName := consts.ARITHMETIC_EXPR_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag, flagNull bool
@@ -1413,7 +1414,7 @@ func (p *Parser) arithmeticExp0() (ok bool, root *util.TreeNode) {
 // item <项>
 func (p *Parser) item() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<项>"
+	nodeName := consts.TERM
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag, flagNull bool
@@ -1446,7 +1447,7 @@ func (p *Parser) item() (ok bool, root *util.TreeNode) {
 // item0 <项0>
 func (p *Parser) item0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<项0>"
+	nodeName := consts.TERM_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1498,7 +1499,7 @@ func (p *Parser) item0() (ok bool, root *util.TreeNode) {
 // factor <因子>
 func (p *Parser) factor() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<因子>"
+	nodeName := consts.FACTOR
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1587,7 +1588,7 @@ func (p *Parser) factor() (ok bool, root *util.TreeNode) {
 // factor0 <因子0>
 func (p *Parser) factor0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<因子0>"
+	nodeName := consts.FACTOR_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1622,7 +1623,7 @@ func (p *Parser) factor0() (ok bool, root *util.TreeNode) {
 // relationalExp <关系表达式>
 func (p *Parser) relationalExp() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<关系表达式>"
+	nodeName := consts.RELATION_EXPR
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1661,7 +1662,7 @@ func (p *Parser) relationalExp() (ok bool, root *util.TreeNode) {
 // relationalOpe <关系运算符>
 func (p *Parser) relationalOpe() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<关系运算符>"
+	nodeName := consts.RELATION_OPERATOR
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var node *util.TreeNode
@@ -1707,7 +1708,7 @@ func (p *Parser) relationalOpe() (ok bool, root *util.TreeNode) {
 // boolExp <布尔表达式>
 func (p *Parser) boolExp() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<布尔表达式>"
+	nodeName := consts.BOOLEAN_EXPR
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1738,7 +1739,7 @@ func (p *Parser) boolExp() (ok bool, root *util.TreeNode) {
 // boolExp0 <布尔表达式0>
 func (p *Parser) boolExp0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<布尔表达式0>"
+	nodeName := consts.BOOLEAN_EXPR_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1782,7 +1783,7 @@ func (p *Parser) boolExp0() (ok bool, root *util.TreeNode) {
 // boolItem <布尔项>
 func (p *Parser) boolItem() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<布尔项>"
+	nodeName := consts.BOOLEAN_ITEM
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1813,7 +1814,7 @@ func (p *Parser) boolItem() (ok bool, root *util.TreeNode) {
 // boolItem0 <布尔项0>
 func (p *Parser) boolItem0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<布尔项0>"
+	nodeName := consts.BOOLEAN_ITEM_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1857,7 +1858,7 @@ func (p *Parser) boolItem0() (ok bool, root *util.TreeNode) {
 // boolFactor <布尔因子>
 func (p *Parser) boolFactor() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<布尔因子>"
+	nodeName := consts.BOOLEAN_FACTOR
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1888,7 +1889,7 @@ func (p *Parser) boolFactor() (ok bool, root *util.TreeNode) {
 // boolFactor0 <布尔因子0>
 func (p *Parser) boolFactor0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<布尔因子0>"
+	nodeName := consts.BOOLEAN_FACTOR_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1930,7 +1931,7 @@ func (p *Parser) boolFactor0() (ok bool, root *util.TreeNode) {
 // assignmentStatement <赋值语句>
 func (p *Parser) assignmentStatement() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<赋值语句>"
+	nodeName := consts.ASSIGNMENT_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -1966,7 +1967,7 @@ func (p *Parser) assignmentStatement() (ok bool, root *util.TreeNode) {
 // assignmentExp <赋值表达式>
 func (p *Parser) assignmentExp() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<赋值表达式>"
+	nodeName := consts.ASSIGNMENT_EXPR
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2012,7 +2013,7 @@ func (p *Parser) assignmentExp() (ok bool, root *util.TreeNode) {
 // assignmentExp0 <赋值表达式0>
 func (p *Parser) assignmentExp0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<赋值表达式0>"
+	nodeName := consts.ASSIGNMENT_EXPR_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2051,7 +2052,7 @@ func (p *Parser) assignmentExp0() (ok bool, root *util.TreeNode) {
 // funcCallStatement <函数调用语句>
 func (p *Parser) funcCallStatement() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数调用语句>"
+	nodeName := consts.FUNCTION_CALL_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2096,7 +2097,7 @@ func (p *Parser) funcCallStatement() (ok bool, root *util.TreeNode) {
 // funcCall <函数调用>
 func (p *Parser) funcCall() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数调用>"
+	nodeName := consts.FUNCTION_CALL
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2150,7 +2151,7 @@ func (p *Parser) funcCall() (ok bool, root *util.TreeNode) {
 // actualParamList <实参列表>
 func (p *Parser) actualParamList() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<实参列表>"
+	nodeName := consts.ARGUMENTS
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2183,7 +2184,7 @@ func (p *Parser) actualParamList() (ok bool, root *util.TreeNode) {
 // actualParam <实参>
 func (p *Parser) actualParam() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<实参>"
+	nodeName := consts.ARGUMENT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2224,7 +2225,7 @@ func (p *Parser) actualParam() (ok bool, root *util.TreeNode) {
 // actualParam0 <实参0>
 func (p *Parser) actualParam0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<实参0>"
+	nodeName := consts.ARGUMENT_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2260,7 +2261,7 @@ func (p *Parser) actualParam0() (ok bool, root *util.TreeNode) {
 // declFormalParamList <函数声明形参列表>
 func (p *Parser) declFormalParamList() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数声明形参列表>"
+	nodeName := consts.FUNCTION_PARAMS
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2293,7 +2294,7 @@ func (p *Parser) declFormalParamList() (ok bool, root *util.TreeNode) {
 // declFormalParam <函数声明形参>
 func (p *Parser) declFormalParam() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数声明形参>"
+	nodeName := consts.FUNCTION_PARAM
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2324,7 +2325,7 @@ func (p *Parser) declFormalParam() (ok bool, root *util.TreeNode) {
 // declFormalParam0 <函数声明形参0>
 func (p *Parser) declFormalParam0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数声明形参0>"
+	nodeName := consts.FUNCTION_PARAM_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2360,7 +2361,7 @@ func (p *Parser) declFormalParam0() (ok bool, root *util.TreeNode) {
 // defineFormalParamList <函数定义形参列表>
 func (p *Parser) defineFormalParamList() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数定义形参列表>"
+	nodeName := consts.FUNCTION_PARAMS_DEF
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2393,7 +2394,7 @@ func (p *Parser) defineFormalParamList() (ok bool, root *util.TreeNode) {
 // defineFormalParam <函数定义形参>
 func (p *Parser) defineFormalParam() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数定义形参>"
+	nodeName := consts.FUNCTION_PARAM_DEF
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2432,7 +2433,7 @@ func (p *Parser) defineFormalParam() (ok bool, root *util.TreeNode) {
 // defineFormalParam0 <函数定义形参0>
 func (p *Parser) defineFormalParam0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<函数定义形参0>"
+	nodeName := consts.FUNCTION_PARAM_0_DEF
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2468,7 +2469,7 @@ func (p *Parser) defineFormalParam0() (ok bool, root *util.TreeNode) {
 // controlStatement <控制语句>
 func (p *Parser) controlStatement() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<控制语句>"
+	nodeName := consts.CONTROL_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2561,7 +2562,7 @@ func (p *Parser) controlStatement() (ok bool, root *util.TreeNode) {
 // IF <if语句>
 func (p *Parser) IF() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<if语句>"
+	nodeName := consts.IF_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2634,7 +2635,7 @@ func (p *Parser) IF() (ok bool, root *util.TreeNode) {
 // IfTail <IfTail语句>
 func (p *Parser) IfTail() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<IfTail语句>"
+	nodeName := consts.IF_TAIL
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2678,7 +2679,7 @@ func (p *Parser) IfTail() (ok bool, root *util.TreeNode) {
 // IfTail0 <IfTail0语句>
 func (p *Parser) IfTail0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<IfTail0语句>"
+	nodeName := consts.IF_TAIL_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2721,7 +2722,7 @@ func (p *Parser) IfTail0() (ok bool, root *util.TreeNode) {
 // FOR <for语句>
 func (p *Parser) FOR() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<for语句>"
+	nodeName := consts.FOR_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2826,7 +2827,7 @@ func (p *Parser) FOR() (ok bool, root *util.TreeNode) {
 // WHILE <while语句>
 func (p *Parser) WHILE() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<while语句>"
+	nodeName := consts.WHILE_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2891,7 +2892,7 @@ func (p *Parser) WHILE() (ok bool, root *util.TreeNode) {
 // DoWHILE <DoWHILE语句>
 func (p *Parser) DoWHILE() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<DoWHILE语句>"
+	nodeName := consts.DO_WHILE_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -2979,7 +2980,7 @@ func (p *Parser) DoWHILE() (ok bool, root *util.TreeNode) {
 // Return <return语句>
 func (p *Parser) Return() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<Return语句>"
+	nodeName := consts.RETURN_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -3014,7 +3015,7 @@ func (p *Parser) Return() (ok bool, root *util.TreeNode) {
 // Return0 <return语句0>
 func (p *Parser) Return0() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<return语句0>"
+	nodeName := consts.RETURN_STMT_0
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var flag bool
@@ -3057,7 +3058,7 @@ func (p *Parser) Return0() (ok bool, root *util.TreeNode) {
 // Break <break语句>
 func (p *Parser) Break() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<break语句>"
+	nodeName := consts.BREAK_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var node *util.TreeNode
@@ -3095,7 +3096,7 @@ func (p *Parser) Break() (ok bool, root *util.TreeNode) {
 // Continue <continue语句>
 func (p *Parser) Continue() (ok bool, root *util.TreeNode) {
 	ok = true
-	nodeName := "<continue语句>"
+	nodeName := consts.CONTINUE_STMT
 	root = util.NewTreeNode(nil, nodeName)
 	state := 0
 	var node *util.TreeNode
