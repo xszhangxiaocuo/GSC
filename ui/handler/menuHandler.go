@@ -14,9 +14,10 @@ import (
 )
 
 type MenuHandler struct {
-	LexerFlag  bool //标记是否已经运行词法分析且没有错误
-	ParserFlag bool //标记是否已经运行语法分析且没有错误
-	Parser     *compiler.Parser
+	LexerFlag  bool               //标记是否已经运行词法分析且没有错误
+	ParserFlag bool               //标记是否已经运行语法分析且没有错误
+	Parser     *compiler.Parser   //语法分析器
+	Analyser   *compiler.Analyser //语义分析器
 }
 
 func NewMenuHandler() *MenuHandler {
@@ -90,6 +91,7 @@ func (handler *MenuHandler) LexerHandler(input *widget.Entry, output *widget.Ent
 
 func (handler *MenuHandler) ParserHandler(input *widget.Entry, output *widget.Entry, bottomOutput *widget.Entry, window fyne.Window) func() {
 	return func() {
+		handler.ParserFlag = false
 		if !handler.LexerFlag {
 			dialog.ShowInformation("语法分析", "请先运行通过词法分析！", window)
 			return
@@ -103,6 +105,32 @@ func (handler *MenuHandler) ParserHandler(input *widget.Entry, output *widget.En
 		if errs != 0 {
 			msg += fmt.Sprintf("行:列\t\t种别码\ttoken值\t错误信息\n")
 			for _, err := range handler.Parser.Logger.Errs {
+				msg += err
+			}
+		}
+
+		bottomOutput.SetText(msg)
+		handler.LexerFlag = false
+		handler.ParserFlag = true
+	}
+}
+
+func (handler *MenuHandler) AnalysierHandler(input *widget.Entry, output *widget.Entry, bottomOutput *widget.Entry, window fyne.Window) func() {
+	return func() {
+		if !handler.ParserFlag {
+			dialog.ShowInformation("语义分析", "请先运行通过语法分析！", window)
+			return
+		}
+		handler.Analyser = compiler.NewAnalyser(handler.Parser.AST)
+		handler.Analyser.StartAnalyse()
+		output.SetText(handler.Analyser.SymbolTable.String())
+
+		errs := len(handler.Analyser.Logger.Errs)
+		msg := fmt.Sprintf("---------语义分析完成---------\n%d error(s)\n\n", errs)
+
+		if errs != 0 {
+			msg += fmt.Sprintf("行:列\t\t种别码\ttoken值\t错误信息\n")
+			for _, err := range handler.Analyser.Logger.Errs {
 				msg += err
 			}
 		}

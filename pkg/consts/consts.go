@@ -246,3 +246,80 @@ const (
 	RELATION_EXPR        string = "<关系表达式>"
 	RELATION_OPERATOR    string = "<关系运算符>"
 )
+
+// 四元式操作符
+const (
+	QUA_ASSIGNMENT        = iota + 1001 //赋值
+	QUA_ADD                             //加法
+	QUA_SUB                             //减法
+	QUA_MUL                             //乘法
+	QUA_DIV                             //除法
+	QUA_MOD                             //取模
+	QUA_NEG                             //取负
+	QUA_POS                             //取正
+	QUA_AND                             //逻辑与
+	QUA_OR                              //逻辑或
+	QUA_NOT                             //逻辑非
+	QUA_EQ                              //等于
+	QUA_NE                              //不等于
+	QUA_GT                              //大于
+	QUA_GE                              //大于等于
+	QUA_LT                              //小于
+	QUA_LE                              //小于等于
+	QUA_JMP                             //无条件跳转
+	QUA_JT                              //条件为真跳转
+	QUA_JF                              //条件为假跳转
+	QUA_JMPGT                           //大于跳转
+	QUA_JMPGE                           //大于等于跳转
+	QUA_JMPLT                           //小于跳转
+	QUA_JMPLE                           //小于等于跳转
+	QUA_JMPEQ                           //等于跳转
+	QUA_JMPNE                           //不等于跳转
+	QUA_LABEL                           //标签
+	QUA_CALL                            //调用
+	QUA_FUNC                            //函数
+	QUA_PARAM                           //参数
+	QUA_RETURN                          //返回
+	QUA_ARG                             //参数
+	QUA_NEGATIVE                        //负数
+	QUA_LEFTSMALLBRACKET                //左括号
+	QUA_RIGHTSMALLBRACKET               //右括号
+)
+
+var QuaFormMap = map[int]string{
+	QUA_ASSIGNMENT:        "=",
+	QUA_ADD:               "+",
+	QUA_SUB:               "-",
+	QUA_MUL:               "*",
+	QUA_DIV:               "/",
+	QUA_MOD:               "%",
+	QUA_NEG:               "-",
+	QUA_POS:               "+",
+	QUA_AND:               "&&",
+	QUA_OR:                "||",
+	QUA_NOT:               "!",
+	QUA_EQ:                "==",
+	QUA_NE:                "!=",
+	QUA_GT:                ">",
+	QUA_GE:                ">=",
+	QUA_LT:                "<",
+	QUA_LE:                "<=",
+	QUA_JMP:               "jmp",
+	QUA_JT:                "jt",
+	QUA_JF:                "jf",
+	QUA_JMPGT:             "jmpgt",
+	QUA_JMPGE:             "jmpge",
+	QUA_JMPLT:             "jmplt",
+	QUA_JMPLE:             "jmple",
+	QUA_JMPEQ:             "jmpeq",
+	QUA_JMPNE:             "jmpne",
+	QUA_LABEL:             "label",
+	QUA_CALL:              "call",
+	QUA_FUNC:              "func",
+	QUA_PARAM:             "param",
+	QUA_RETURN:            "return",
+	QUA_ARG:               "arg",
+	QUA_NEGATIVE:          "@", //标记负数，用于区分负数和负号
+	QUA_LEFTSMALLBRACKET:  "(",
+	QUA_RIGHTSMALLBRACKET: ")",
+}

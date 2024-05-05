@@ -102,16 +102,14 @@ func InitApp() {
 		fyne.NewMenuItem("词法分析器", menuHandler.LexerHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
 	)
 
-	//TODO：完善语法分析菜单选项函数
 	parserMenu := fyne.NewMenu("语法分析",
 		fyne.NewMenuItem("语法分析器", menuHandler.ParserHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
 	)
 
 	//TODO：完善语义分析菜单选项函数
 	analysierMenu := fyne.NewMenu("语义分析",
-		fyne.NewMenuItem("语义分析器", func() {
-			println("语义分析器被点击了")
-		}))
+		fyne.NewMenuItem("语义分析器", menuHandler.AnalysierHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
+	)
 
 	//TODO：完善中间代码菜单选项函数
 	IRcodeMenu := fyne.NewMenu("中间代码",
