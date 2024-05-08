@@ -57,6 +57,7 @@ type CalStack struct {
 	NumStack *Stack[any]
 	OpStack  *Stack[any]
 	qf       *QuaFormList
+	Result   any
 }
 
 // NewCalStack 创建计算栈
@@ -73,7 +74,7 @@ func (c *CalStack) priority(op any) int {
 	switch op {
 	case consts.QUA_LEFTSMALLBRACKET, consts.QUA_RIGHTSMALLBRACKET:
 		return 1
-	case consts.QUA_NOT, consts.QUA_NEGATIVE:
+	case consts.QUA_NOT, consts.QUA_NEGATIVE, consts.QUA_POSITIVE:
 		return 2
 	case consts.QUA_MUL, consts.QUA_DIV, consts.QUA_MOD:
 		return 3
@@ -87,12 +88,22 @@ func (c *CalStack) priority(op any) int {
 		return 7
 	case consts.QUA_OR:
 		return 8
-	case consts.QUA_ASSIGNMENT:
+	case consts.QUA_PARAM:
 		return 9
-	default:
+	case consts.QUA_CALL:
 		return 10
+	case consts.QUA_ASSIGNMENT:
+		return 11
+	default:
+		return 12
 	}
 
+}
+
+// PushFuncCall 压入一个函数调用
+func (c *CalStack) PushFuncCall(funcName string) {
+	c.OpStack.Push(consts.QUA_CALL)
+	c.NumStack.Push(funcName)
 }
 
 // PushNum 入数字栈
@@ -103,27 +114,44 @@ func (c *CalStack) PushNum(value any) {
 // PushOp 入操作符栈
 func (c *CalStack) PushOp(ope int) {
 	top := c.OpStack.Top()
-	if c.priority(top) <= c.priority(ope) {
+	for c.priority(top) <= c.priority(ope) {
 		c.Cal()
+		top = c.OpStack.Top()
 	}
 	c.OpStack.Push(ope)
 }
 
-// Cal 对数字栈顶两个元素进行一次计算,遇到"@","!"只取栈顶一个元素进行一次计算
+// Cal 对数字栈顶两个元素进行一次计算,遇到"#","@","!"只取栈顶一个元素进行一次计算
 func (c *CalStack) Cal() {
 	op, _ := c.OpStack.Pop()
-	num1, _ := c.NumStack.Pop()
+	num2, _ := c.NumStack.Pop()
 	if consts.QUA_NOT == op || consts.QUA_NEGATIVE == op {
 		result := c.qf.GetTemp()
-		c.qf.AddQuaForm(consts.QuaFormMap[op.(int)], num1, nil, result)
+		c.qf.AddQuaForm(consts.QuaFormMap[op.(int)], num2, nil, result)
 		c.NumStack.Push(result)
 		return
 	}
+	if consts.QUA_PARAM == op {
+		c.qf.AddQuaForm(consts.QuaFormMap[op.(int)], num2, nil, nil)
+		return
+	}
 
-	num2, _ := c.NumStack.Pop()
-	// 遇到赋值运算符，num2为变量，num1为值
+	if consts.QUA_CALL == op {
+		if c.NumStack.IsEmpty() {
+			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_FUNCCALL], num2, nil, nil)
+		} else {
+			result := c.qf.GetTemp()
+			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_FUNCCALL], num2, nil, result)
+			c.NumStack.Push(result)
+		}
+		return
+	}
+
+	num1, _ := c.NumStack.Pop()
+	// 遇到赋值运算符，num1为变量，num2为值
 	if op == consts.QUA_ASSIGNMENT {
-		c.qf.AddQuaForm(consts.QuaFormMap[op.(int)], num1, nil, num2)
+		c.qf.AddQuaForm(consts.QuaFormMap[op.(int)], num2, nil, num1)
+		c.Result = num2
 		return
 	}
 
@@ -139,11 +167,25 @@ func (c *CalStack) CalAll() {
 	}
 }
 
+// CalAllUtilCall 计算直到函数调用符出栈
+func (c *CalStack) CalAllUtilCall() {
+	for c.OpStack.Top() != consts.QUA_CALL {
+		c.Cal()
+	}
+	c.Cal()
+}
+
+func (c *CalStack) Clear() {
+	c.NumStack = NewStack()
+	c.OpStack = NewStack()
+}
+
 // CalStacks 计算栈集合
 type CalStacks struct {
 	CurrentStack *CalStack   //当前计算栈
 	BracketStack *Stack[any] //括号栈，每遇到一个左括号，就新建一个计算栈，遇到右括号，就将计算栈出栈
 	qf           *QuaFormList
+	Result       any
 }
 
 // NewCalStacks 创建计算栈集合
@@ -156,6 +198,10 @@ func NewCalStacks(qf *QuaFormList) *CalStacks {
 	}
 	c.BracketStack.Push(current)
 	return c
+}
+
+func (c *CalStacks) PushFuncCall(funcName string) {
+	c.CurrentStack.PushFuncCall(funcName)
 }
 
 func (c *CalStacks) PushNum(value any) {
@@ -184,4 +230,13 @@ func (c *CalStacks) PushOpe(ope int) {
 
 func (c *CalStacks) CalAll() {
 	c.CurrentStack.CalAll()
+	c.Result = c.CurrentStack.Result
+}
+
+func (c *CalStacks) CalAllUtilCall() {
+	c.CurrentStack.CalAllUtilCall()
+}
+
+func (c *CalStacks) Clear() {
+	c.CurrentStack.Clear()
 }

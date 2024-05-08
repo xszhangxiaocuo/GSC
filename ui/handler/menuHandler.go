@@ -123,7 +123,8 @@ func (handler *MenuHandler) AnalysierHandler(input *widget.Entry, output *widget
 		}
 		handler.Analyser = compiler.NewAnalyser(handler.Parser.AST)
 		handler.Analyser.StartAnalyse()
-		output.SetText(handler.Analyser.SymbolTable.String())
+		result := handler.Analyser.SymbolTable.String() + "\n\n" + handler.Analyser.Qf.PrintQuaFormList()
+		output.SetText(result)
 
 		errs := len(handler.Analyser.Logger.Errs)
 		msg := fmt.Sprintf("---------语义分析完成---------\n%d error(s)\n\n", errs)

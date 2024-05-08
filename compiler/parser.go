@@ -1976,10 +1976,8 @@ func (p *Parser) assignmentExp() (ok bool, root *util.TreeNode) {
 	for state != -1 {
 		switch state {
 		case 0:
-			token = p.nextToken()
-			if p.match(token, consts.TokenMap["identifier"]) {
+			if flag, node = p.Var(); flag {
 				state = 1
-				node = util.NewTreeNode(&token, token.Value)
 				root.AddChild(node)
 			} else {
 				state = 1
@@ -1998,46 +1996,7 @@ func (p *Parser) assignmentExp() (ok bool, root *util.TreeNode) {
 				p.Logger.AddParserErr(token, nodeName, "缺少 = ")
 			}
 		case 2:
-			if flag, node = p.assignmentExp0(); flag {
-				state = -1
-				root.AddChild(node)
-			} else {
-				state = -1
-				ok = false
-			}
-		}
-	}
-	return
-}
-
-// assignmentExp0 <赋值表达式0>
-func (p *Parser) assignmentExp0() (ok bool, root *util.TreeNode) {
-	ok = true
-	nodeName := consts.ASSIGNMENT_EXPR_0
-	root = util.NewTreeNode(nil, nodeName)
-	state := 0
-	var flag bool
-	var node *util.TreeNode
-	var token util.TokenNode
-	for state != -1 {
-		switch state {
-		case 0:
-			token = p.peek(1)
-			if p.match(token, consts.TokenMap["identifier"]) && p.match(p.peek(2), consts.TokenMap["("]) {
-				state = 2
-			} else {
-				state = 1
-			}
-		case 1:
 			if flag, node = p.boolExp(); flag {
-				state = -1
-				root.AddChild(node)
-			} else {
-				state = -1
-				ok = false
-			}
-		case 2:
-			if flag, node = p.funcCall(); flag {
 				state = -1
 				root.AddChild(node)
 			} else {

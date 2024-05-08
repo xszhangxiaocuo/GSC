@@ -69,39 +69,41 @@ func (q *QuaFormList) GetQuaFormLength() int {
 }
 
 // PrintQuaFormList 打印四元式列表
-func (q *QuaFormList) PrintQuaFormList() {
-	str := ""
+func (q *QuaFormList) PrintQuaFormList() string {
+	str := "四元式列表：\nid\top\t\targ1\t\targ2\t\tresult\n"
 	for i, qf := range q.QuaForms {
-		str += fmt.Sprintf("%d: ", i)
-		str += fmt.Sprintf("%s ", qf.Op)
+		str += fmt.Sprintf("%d\t", i)
+		str += fmt.Sprintf("%s\t\t", qf.Op)
 		arg1, ok := qf.Arg1.(string)
 		if ok {
-			str += fmt.Sprintf("%s ", arg1)
+			str += fmt.Sprintf("%s\t\t", arg1)
 		} else {
 			if qf.Arg1 == nil {
-				str += fmt.Sprintf("<nil> ")
+				str += fmt.Sprintf("<nil>\t\t")
 			} else {
-				str += fmt.Sprintf("%c ", qf.Arg1)
+				str += fmt.Sprintf("%c\t\t", qf.Arg1)
 			}
 		}
 		arg2, ok := qf.Arg2.(string)
 		if ok {
-			str += fmt.Sprintf("%s ", arg2)
+			str += fmt.Sprintf("%s\t\t", arg2)
 		} else {
 			if qf.Arg2 == nil {
-				str += fmt.Sprintf("<nil> ")
+				str += fmt.Sprintf("<nil>\t\t")
 			} else {
-				str += fmt.Sprintf("%c ", qf.Arg2)
+				str += fmt.Sprintf("%c\t\t", qf.Arg2)
 			}
 		}
 		result, ok := qf.Result.(string)
 		if ok {
 			str += fmt.Sprintf("%s\n", result)
 		} else {
-			str += fmt.Sprintf("%c\n", qf.Result)
+			if qf.Arg2 == nil {
+				str += fmt.Sprintf("<nil>\n")
+			} else {
+				str += fmt.Sprintf("%c\n", qf.Result)
+			}
 		}
-		//fmt.Printf("%d: %s %s %s %s\n", i, qf.Op, arg1, arg2, result)
-		//fmt.Printf("%d: %s %s %s %s\n", i, qf.Op, qf.Arg1, qf.Arg1, qf.Result)
 	}
-	fmt.Println(str)
+	return str
 }

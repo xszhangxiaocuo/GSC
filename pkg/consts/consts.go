@@ -281,9 +281,12 @@ const (
 	QUA_PARAM                           //参数
 	QUA_RETURN                          //返回
 	QUA_ARG                             //参数
-	QUA_NEGATIVE                        //负数
+	QUA_POSITIVE                        //正号
+	QUA_NEGATIVE                        //负号
 	QUA_LEFTSMALLBRACKET                //左括号
 	QUA_RIGHTSMALLBRACKET               //右括号
+	QUA_FUNCCALL                        //函数调用
+	NIL                                 //空
 )
 
 var QuaFormMap = map[int]string{
@@ -316,10 +319,13 @@ var QuaFormMap = map[int]string{
 	QUA_LABEL:             "label",
 	QUA_CALL:              "call",
 	QUA_FUNC:              "func",
-	QUA_PARAM:             "param",
-	QUA_RETURN:            "return",
+	QUA_PARAM:             "para",
+	QUA_RETURN:            "ret",
 	QUA_ARG:               "arg",
+	QUA_POSITIVE:          "#", //标记正数，用于区分正数和正号
 	QUA_NEGATIVE:          "@", //标记负数，用于区分负数和负号
 	QUA_LEFTSMALLBRACKET:  "(",
 	QUA_RIGHTSMALLBRACKET: ")",
+	QUA_FUNCCALL:          "call",
+	NIL:                   "<nil>",
 }
