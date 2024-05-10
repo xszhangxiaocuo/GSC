@@ -286,7 +286,10 @@ const (
 	QUA_LEFTSMALLBRACKET                //左括号
 	QUA_RIGHTSMALLBRACKET               //右括号
 	QUA_FUNCCALL                        //函数调用
-	NIL                                 //空
+	QUA_NIL                             //空
+	QUA_IF                              //if
+	QUA_ELSE                            //else
+	QUA_SYS                             //标识main函数结束
 )
 
 var QuaFormMap = map[int]string{
@@ -310,12 +313,12 @@ var QuaFormMap = map[int]string{
 	QUA_JMP:               "jmp",
 	QUA_JT:                "jt",
 	QUA_JF:                "jf",
-	QUA_JMPGT:             "jmpgt",
-	QUA_JMPGE:             "jmpge",
-	QUA_JMPLT:             "jmplt",
-	QUA_JMPLE:             "jmple",
-	QUA_JMPEQ:             "jmpeq",
-	QUA_JMPNE:             "jmpne",
+	QUA_JMPGT:             "j>",
+	QUA_JMPGE:             "j>=",
+	QUA_JMPLT:             "j<",
+	QUA_JMPLE:             "j<=",
+	QUA_JMPEQ:             "j=",
+	QUA_JMPNE:             "j!=",
 	QUA_LABEL:             "label",
 	QUA_CALL:              "call",
 	QUA_FUNC:              "func",
@@ -327,5 +330,8 @@ var QuaFormMap = map[int]string{
 	QUA_LEFTSMALLBRACKET:  "(",
 	QUA_RIGHTSMALLBRACKET: ")",
 	QUA_FUNCCALL:          "call",
-	NIL:                   "<nil>",
+	QUA_NIL:               "<nil>",
+	QUA_IF:                "if",
+	QUA_ELSE:              "else",
+	QUA_SYS:               "sys",
 }

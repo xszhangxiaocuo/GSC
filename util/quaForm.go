@@ -16,7 +16,8 @@ type quaForm struct {
 // QuaFormList 四元式列表
 type QuaFormList struct {
 	QuaForms []*quaForm
-	Count    int // 临时变量计数
+	Count    int  // 临时变量计数
+	IfFlag   bool //标记当前是否在处理if语句的判断条件
 }
 
 // NewQuaFormList 创建四元式列表
@@ -98,7 +99,9 @@ func (q *QuaFormList) PrintQuaFormList() string {
 		if ok {
 			str += fmt.Sprintf("%s\n", result)
 		} else {
-			if qf.Arg2 == nil {
+			if result, ok := qf.Result.(int); ok {
+				str += fmt.Sprintf("%d\n", result)
+			} else if qf.Result == nil {
 				str += fmt.Sprintf("<nil>\n")
 			} else {
 				str += fmt.Sprintf("%c\n", qf.Result)

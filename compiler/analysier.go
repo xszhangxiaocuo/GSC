@@ -142,6 +142,7 @@ type Analyser struct {
 	info        *Info             //当前传递的info信息
 	flag        bool              //标记当前传递的info信息是否已经完整
 	err         bool              //标记是否出现错误
+	paramFlag   bool              //标记是否有参数
 	node        *util.TreeNode    //当前节点
 	Qf          *util.QuaFormList //四元式列表
 	currentFunc string            //当前函数
@@ -235,7 +236,9 @@ func (a *Analyser) changeVarTable() {
 			a.Logger.AddErr("\t\t\t\t\t\t变量：" + a.info.Name + " 未定义\n")
 			return
 		}
-		a.SymbolTable.AddVariable(a.info)
+		info := a.SymbolTable.VarTable[a.info.Name].Copy()
+		info.Value = a.info.Value
+		a.SymbolTable.AddVariable(info)
 	}
 }
 
@@ -260,24 +263,34 @@ func (a *Analyser) checkVar(node *util.TreeNode) bool {
 		a.Logger.AddAnalyseErr(node.Token, "变量未定义")
 		return false
 	}
-	if a.info.Type == "" {
-		a.info.Type = a.SymbolTable.VarTable[a.info.Name].Type
-	}
-
-	var v *Info
-	if a.varIsExist(node.Value) {
-		v, _ = a.SymbolTable.FindVariable(node.Value)
-	} else if a.constIsExist(node.Value) {
-		v, _ = a.SymbolTable.FindConstant(node.Value)
-	} else {
-		a.Logger.AddAnalyseErr(node.Token, "变量类型未知")
-		return false
-	}
-
-	if v.Type != a.info.Type {
-		a.Logger.AddAnalyseErr(node.Token, "类型不匹配: ", a.info.Type)
-		return false
-	}
+	//TODO: 检查变量类型是否匹配
+	//if a.info.Type == "" {
+	//	if a.varIsExist(a.info.Name) {
+	//		info, _ := a.SymbolTable.FindVariable(a.info.Name)
+	//		a.info.Type = info.Type
+	//	} else if a.constIsExist(a.info.Name) {
+	//		info, _ := a.SymbolTable.FindConstant(a.info.Name)
+	//		a.info.Type = info.Type
+	//	} else if a.funcIsExist(a.info.Name) {
+	//		info, _ := a.SymbolTable.FindFunction(a.info.Name)
+	//		a.info.Type = info.Pars[0]
+	//	}
+	//}
+	//
+	//var v *Info
+	//if a.varIsExist(node.Value) {
+	//	v, _ = a.SymbolTable.FindVariable(node.Value)
+	//} else if a.constIsExist(node.Value) {
+	//	v, _ = a.SymbolTable.FindConstant(node.Value)
+	//} else {
+	//	a.Logger.AddAnalyseErr(node.Token, "变量类型未知")
+	//	return false
+	//}
+	//
+	//if v.Type != a.info.Type {
+	//	a.Logger.AddAnalyseErr(node.Token, "类型不匹配: ", a.info.Type)
+	//	return false
+	//}
 	return true
 }
 
@@ -300,19 +313,20 @@ func (a *Analyser) checkConstNumber(node *util.TreeNode) bool {
 	return true
 }
 
-// checkFuncCall 在进行函数调用时检查函数是否合法
+// checkFunc 在进行函数调用时检查函数是否合法
 func (a *Analyser) checkFunc(node *util.TreeNode) bool {
 	if !a.funcIsExist(node.Value) {
 		a.Logger.AddAnalyseErr(node.Token, "函数未定义")
 		return false
 	}
-	if a.info.Type == "" {
-		a.info.Type = a.SymbolTable.VarTable[a.info.Name].Type
-	}
-	if a.info.Type != a.SymbolTable.FuncTable[node.Value].Type {
-		a.Logger.AddAnalyseErr(node.Token, "函数返回值类型不匹配")
-		return false
-	}
+	//TODO: 检查函数参数是否匹配
+	//if a.info.Type == "" {
+	//	a.info.Type = a.SymbolTable.VarTable[a.info.Name].Type
+	//}
+	//if a.info.Type != a.SymbolTable.FuncTable[node.Value].Type {
+	//	a.Logger.AddAnalyseErr(node.Token, "函数返回值类型不匹配")
+	//	return false
+	//}
 	return true
 }
 
@@ -448,6 +462,9 @@ func (a *Analyser) initValue() {
 func (a *Analyser) clearCalStacks() {
 	a.calStacks.CalAll()
 	a.info.Value = a.calStacks.Result
+	if a.info.Value == nil {
+		a.info.Value = a.calStacks.CurrentStack.NumStack.Pop()
+	}
 	a.calStacks.Clear()
 }
 
@@ -484,6 +501,7 @@ func (a *Analyser) analyse(node *util.TreeNode, next int) {
 		a.info.Scope = a.Scope
 	case consts.COMPOUND_STMT:
 		a.analyseCompoundStatement(child, 0)
+		a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_SYS], nil, nil, nil)
 	case consts.FUNCTION_BLOCK:
 		a.analyseFunctionBlock(child, 0)
 	}
@@ -938,8 +956,8 @@ func (a *Analyser) analyseFactor(node *util.TreeNode, next int) {
 		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
 	case ")":
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-	case consts.ARITHMETIC_EXPR:
-		a.analyseArithmeticExp(child, 0)
+	case consts.BOOLEAN_EXPR:
+		a.analyseBoolExp(child, 0)
 	case consts.VARIABLE:
 		if a.checkVar(child.Children[0]) {
 			a.calStacks.PushNum(child.Children[0].Value)
@@ -953,11 +971,7 @@ func (a *Analyser) analyseFactor(node *util.TreeNode, next int) {
 			a.err = true
 		}
 	case consts.FUNCTION_CALL:
-		if a.checkFunc(child.Children[0].Children[0]) {
-			a.analyseFuncCall(child, 0, false)
-		} else {
-			a.err = true
-		}
+		a.analyseFuncCall(child, 0, false)
 	case consts.FACTOR_0:
 		a.analyseFactor0(child, 0)
 	}
@@ -1293,8 +1307,7 @@ func (a *Analyser) analyseExeStatement(node *util.TreeNode, next int) {
 	case consts.DATA_PROCESS_STMT:
 		a.analyseDataHandleStatement(child, 0)
 	case consts.CONTROL_STMT:
-		//TODO: 未完成
-		//a.analyseControlStatement(child, 0)
+		a.analyseControlStatement(child, 0)
 	case consts.COMPOUND_STMT:
 		a.analyseCompoundStatement(child, 0)
 	}
@@ -1331,13 +1344,145 @@ func (a *Analyser) analyseControlStatement(node *util.TreeNode, next int) {
 	}
 	child := node.Children[next]
 	switch child.Value {
-	case consts.VALUE_DECLARATION:
-		a.analyseDeclarationValue(child, 0)
-	case consts.STATEMENT_TABLE_0:
-		a.analyseBoolExp0(child, 0)
+	case consts.IF_STMT:
+		stack := util.NewStack()
+		a.calStacks.PushIfStack(stack)
+		a.analyseIfStatement(child, 0)
+		a.calStacks.PopCurrentIfStack()
+	case consts.RETURN_STMT:
+		a.analyseReturn(child, 0)
 	}
 	a.infoFlag()
 	a.analyseControlStatement(node, next+1)
+}
+
+// analyseIfStatement 分析if语句 TODO: 未完成
+func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case "if":
+		//a.calStacks.PushOpe(consts.QUA_IF)
+		a.info.Type = "int"
+		stack := util.NewStack()
+		a.calStacks.PushQuaStack(stack)
+	case "(":
+		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
+		a.Qf.IfFlag = true
+	case ")":
+		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
+		if !a.calStacks.CurrentStack.NumStack.IsEmpty() {
+			a.calStacks.PushOpe(consts.QUA_AND)
+		}
+		a.Qf.IfFlag = false
+	case consts.BOOLEAN_EXPR:
+		a.analyseBoolExp(child, 0)
+	case consts.COMPOUND_STMT:
+		a.analyseCompoundStatement(child, 0)
+	case consts.IF_TAIL:
+		//如果ifTail为空，说明整个if语句结束，需要清空栈
+		if child.Children[0].Value == consts.NULL {
+			a.calStacks.ClearCurrentIfStack()
+			a.calStacks.ClearCurrentQuaStack()
+		} else { //如果ifTail不为空，说明还有else语句，需要继续分析
+			id := a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
+			a.calStacks.CurrentIfQuaStack.Push(id)
+			a.calStacks.ClearCurrentQuaStack()
+		}
+		a.analyseIfTail(child, 0)
+	}
+	a.infoFlag()
+	a.analyseIfStatement(node, next+1)
+}
+
+// analyseIfTail 分析ifTail语句 TODO: 未完成
+func (a *Analyser) analyseIfTail(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case "else":
+		a.info.Type = "int"
+		stack := util.NewStack()
+		a.calStacks.PushQuaStack(stack)
+	case consts.IF_TAIL_0:
+		a.analyseIfTail0(child, 0)
+	}
+	a.infoFlag()
+	a.analyseIfTail(node, next+1)
+}
+
+// analyseIfTail0 分析ifTail0语句 TODO: 未完成
+func (a *Analyser) analyseIfTail0(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case consts.IF_STMT:
+		a.analyseIfStatement(child, 0)
+	case consts.COMPOUND_STMT:
+		a.analyseCompoundStatement(child, 0)
+		//else后紧跟的是复合语句，说明整个if语句结束，需要清空栈 TODO
+		a.calStacks.ClearCurrentIfStack()
+		a.calStacks.ClearCurrentQuaStack()
+	}
+	a.infoFlag()
+	a.analyseIfTail0(node, next+1)
+}
+
+// analyseReturn 分析return语句 TODO: 未完成
+func (a *Analyser) analyseReturn(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case "return":
+	case consts.RETURN_STMT_0:
+		a.analyseReturn0(child, 0)
+	}
+	a.infoFlag()
+	a.analyseReturn(node, next+1)
+}
+
+// analyseReturn0 分析return0语句 TODO: 未完成
+func (a *Analyser) analyseReturn0(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case ";":
+		if next == 0 {
+			a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_RETURN], nil, nil, nil)
+		} else {
+			a.clearCalStacks()
+			a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_RETURN], nil, nil, a.info.Value)
+		}
+	case consts.BOOLEAN_EXPR:
+		a.analyseBoolExp(child, 0)
+	}
+	a.infoFlag()
+	a.analyseReturn0(node, next+1)
 }
 
 // analyseAssignmentStatement 分析赋值语句
@@ -1385,7 +1530,6 @@ func (a *Analyser) analyseFuncCallStatement(node *util.TreeNode, next int) {
 	a.analyseFuncCallStatement(node, next+1)
 }
 
-// TODO: 未完成
 // analyseFuncCall 分析函数调用,flag用于标记是在函数调用语句中还是在表达式中，如果是一个<函数调用语句>只需要判断函数是否存在，参数个数是否匹配，参数类型是否匹配,如果是在<布尔表达式>中还需要判断返回类型是否匹配
 func (a *Analyser) analyseFuncCall(node *util.TreeNode, next int, flag bool) {
 	if next >= len(node.Children) || !isLegalNode(node) {
@@ -1413,8 +1557,11 @@ func (a *Analyser) analyseFuncCall(node *util.TreeNode, next int, flag bool) {
 			}
 		}
 	case "(":
-		a.calStacks.PushOpe(consts.QUA_PARAM)
+
 	case consts.ARGUMENTS:
+		if child.Children[0].Value != consts.NULL {
+			a.calStacks.PushOpe(consts.QUA_PARAM)
+		}
 		a.analyseActualParamList(child, 0)
 	case ")":
 		//如果是函数调用语句，最后需要清空栈；如果是在布尔表达式中，要对栈进行计算直到函数调用符号出栈
@@ -1565,12 +1712,21 @@ func (a *Analyser) analyseFunctionDefine(node *util.TreeNode, next int) {
 	case "(":
 		a.params = make([]Param, 0)
 	case ")":
-		a.params = append(a.params, Param{
-			Name: a.info.Name,
-			Type: a.info.Type,
-		})
+		if a.paramFlag {
+			a.params = append(a.params, Param{
+				Name: a.info.Name,
+				Type: a.info.Type,
+			})
+		}
+
 		a.checkFuncParamList(a.currentFunc) //检查函数参数类型是否匹配，并加入符号表
 	case consts.FUNCTION_PARAMS_DEF:
+		//参数为空
+		if child.Children[0].Value == consts.NULL {
+			a.paramFlag = false
+		} else {
+			a.paramFlag = true
+		}
 		a.analyseDefineFormalParamList(child, 0)
 	case consts.COMPOUND_STMT:
 		a.analyseCompoundStatement(child, 0)

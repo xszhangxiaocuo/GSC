@@ -1530,7 +1530,7 @@ func (p *Parser) factor() (ok bool, root *util.TreeNode) {
 				p.Logger.AddParserErr(token, nodeName)
 			}
 		case 1:
-			if flag, node = p.arithmeticExp(); flag {
+			if flag, node = p.boolExp(); flag {
 				state = 4
 				root.AddChild(node)
 			} else {
