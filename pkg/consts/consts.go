@@ -290,6 +290,7 @@ const (
 	QUA_IF                              //if
 	QUA_ELSE                            //else
 	QUA_SYS                             //标识main函数结束
+	QUA_MOVE                            //标识逻辑运算出口栈需要转移
 )
 
 var QuaFormMap = map[int]string{
@@ -334,4 +335,5 @@ var QuaFormMap = map[int]string{
 	QUA_IF:                "if",
 	QUA_ELSE:              "else",
 	QUA_SYS:               "sys",
+	QUA_MOVE:              "move",
 }

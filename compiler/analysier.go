@@ -237,8 +237,11 @@ func (a *Analyser) changeVarTable() {
 			return
 		}
 		info := a.SymbolTable.VarTable[a.info.Name].Copy()
-		info.Value = a.info.Value
-		a.SymbolTable.AddVariable(info)
+		if info.Name != a.info.Value {
+			info.Value = a.info.Value
+			a.SymbolTable.AddVariable(info)
+		}
+
 	}
 }
 
@@ -1367,18 +1370,18 @@ func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
 	child := node.Children[next]
 	switch child.Value {
 	case "if":
-		//a.calStacks.PushOpe(consts.QUA_IF)
 		a.info.Type = "int"
-		stack := util.NewStack()
-		a.calStacks.PushQuaStack(stack)
+		//stack := util.NewLogicStack(a.Qf)
+		//a.calStacks.PushLogicStack(stack)
 	case "(":
-		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
 		a.Qf.IfFlag = true
+		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
+
 	case ")":
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-		if !a.calStacks.CurrentStack.NumStack.IsEmpty() {
-			a.calStacks.PushOpe(consts.QUA_AND)
-		}
+		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//分析完if的判断条件后，需要回填真出口
+		a.calStacks.ClearTrueStack()
 		a.Qf.IfFlag = false
 	case consts.BOOLEAN_EXPR:
 		a.analyseBoolExp(child, 0)
@@ -1387,12 +1390,16 @@ func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
 	case consts.IF_TAIL:
 		//如果ifTail为空，说明整个if语句结束，需要清空栈
 		if child.Children[0].Value == consts.NULL {
+			a.calStacks.ClearTrueStack()
+			a.calStacks.ClearFalseStack()
 			a.calStacks.ClearCurrentIfStack()
-			a.calStacks.ClearCurrentQuaStack()
-		} else { //如果ifTail不为空，说明还有else语句，需要继续分析
+			a.calStacks.PopCurrentLogicStack()
+		} else { //如果ifTail不为空，说明还有else语句，需要继续分析。回填假出口栈
+			//if语句结束，跳出整个if语句
 			id := a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
 			a.calStacks.CurrentIfQuaStack.Push(id)
-			a.calStacks.ClearCurrentQuaStack()
+			a.calStacks.ClearFalseStack()
+			a.calStacks.PopCurrentLogicStack()
 		}
 		a.analyseIfTail(child, 0)
 	}
@@ -1411,9 +1418,6 @@ func (a *Analyser) analyseIfTail(node *util.TreeNode, next int) {
 	child := node.Children[next]
 	switch child.Value {
 	case "else":
-		a.info.Type = "int"
-		stack := util.NewStack()
-		a.calStacks.PushQuaStack(stack)
 	case consts.IF_TAIL_0:
 		a.analyseIfTail0(child, 0)
 	}
@@ -1434,10 +1438,17 @@ func (a *Analyser) analyseIfTail0(node *util.TreeNode, next int) {
 	case consts.IF_STMT:
 		a.analyseIfStatement(child, 0)
 	case consts.COMPOUND_STMT:
+		a.info.Type = "int"
+		stack := util.NewLogicStack(a.Qf)
+		a.calStacks.PushLogicStack(stack)
+
 		a.analyseCompoundStatement(child, 0)
-		//else后紧跟的是复合语句，说明整个if语句结束，需要清空栈 TODO
+
+		//else后紧跟的是复合语句，说明整个if语句结束，需要清空栈
 		a.calStacks.ClearCurrentIfStack()
-		a.calStacks.ClearCurrentQuaStack()
+		a.calStacks.ClearTrueStack()
+		a.calStacks.ClearFalseStack()
+		a.calStacks.PopCurrentLogicStack()
 	}
 	a.infoFlag()
 	a.analyseIfTail0(node, next+1)
