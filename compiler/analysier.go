@@ -133,20 +133,21 @@ func (s *SymbolTable) RemoveFunction(name string) {
 
 // Analyser 语义分析器
 type Analyser struct {
-	Ast         *util.TreeNode    //语法树
-	calStacks   *util.CalStacks   //运算符栈
-	SymbolTable *SymbolTable      //符号表
-	Logger      *logger.Logger    //日志记录器
-	Level       int               //作用域等级
-	Scope       string            //作用域
-	info        *Info             //当前传递的info信息
-	flag        bool              //标记当前传递的info信息是否已经完整
-	err         bool              //标记是否出现错误
-	paramFlag   bool              //标记是否有参数
-	node        *util.TreeNode    //当前节点
-	Qf          *util.QuaFormList //四元式列表
-	currentFunc string            //当前函数
-	params      []Param           //参数列表
+	Ast           *util.TreeNode    //语法树
+	calStacks     *util.CalStacks   //运算符栈
+	SymbolTable   *SymbolTable      //符号表
+	Logger        *logger.Logger    //日志记录器
+	Level         int               //作用域等级
+	Scope         string            //作用域
+	info          *Info             //当前传递的info信息
+	flag          bool              //标记当前传递的info信息是否已经完整
+	err           bool              //标记是否出现错误
+	paramFlag     bool              //标记是否有参数
+	node          *util.TreeNode    //当前节点
+	Qf            *util.QuaFormList //四元式列表
+	CurrentJmpPos *util.ForJmpPos   //当前循环的条件判断位置
+	currentFunc   string            //当前函数
+	params        []Param           //参数列表
 }
 
 // NewAnalyser 创建语义分析器
@@ -1337,7 +1338,7 @@ func (a *Analyser) analyseDataHandleStatement(node *util.TreeNode, next int) {
 	a.analyseDataHandleStatement(node, next+1)
 }
 
-// analyseControlStatement 分析控制语句 TODO: 未完成
+// analyseControlStatement 分析控制语句
 func (a *Analyser) analyseControlStatement(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return
@@ -1352,14 +1353,81 @@ func (a *Analyser) analyseControlStatement(node *util.TreeNode, next int) {
 		a.calStacks.PushIfStack(stack)
 		a.analyseIfStatement(child, 0)
 		a.calStacks.PopCurrentIfStack()
+	case consts.WHILE_STMT:
+		jmpPos := util.NewForJmpPos()
+		a.Qf.JmpPoint.Push(jmpPos)
+		a.CurrentJmpPos = jmpPos
+
+		breakStack := util.NewStack()
+		a.Qf.PushBreakStack(breakStack)
+		continueStack := util.NewStack()
+		a.Qf.PushContinue(continueStack)
+
+		a.analyseWhileStatement(child, 0)
+
+		//回填continue出口
+		a.Qf.ClearContinueStack(a.CurrentJmpPos.ContinuePos)
+
+		a.Qf.JmpPoint.Pop()
+		if !a.Qf.JmpPoint.IsEmpty() {
+			a.CurrentJmpPos = a.Qf.JmpPoint.Top().(*util.ForJmpPos)
+		}
+		//回填break出口
+		a.Qf.ClearBreakStack(a.Qf.NextQuaFormId())
+	case consts.DO_WHILE_STMT:
+		jmpPos := util.NewForJmpPos()
+		a.Qf.JmpPoint.Push(jmpPos)
+		a.CurrentJmpPos = jmpPos
+
+		breakStack := util.NewStack()
+		a.Qf.PushBreakStack(breakStack)
+		continueStack := util.NewStack()
+		a.Qf.PushContinue(continueStack)
+
+		a.analyseDoWhileStatement(child, 0)
+
+		//回填continue出口
+		a.Qf.ClearContinueStack(a.CurrentJmpPos.ContinuePos)
+
+		a.Qf.JmpPoint.Pop()
+		if !a.Qf.JmpPoint.IsEmpty() {
+			a.CurrentJmpPos = a.Qf.JmpPoint.Top().(*util.ForJmpPos)
+		}
+		//回填break出口
+		a.Qf.ClearBreakStack(a.Qf.NextQuaFormId())
+	case consts.FOR_STMT:
+		jmpPos := util.NewForJmpPos()
+		a.Qf.JmpPoint.Push(jmpPos)
+		a.CurrentJmpPos = jmpPos
+
+		breakStack := util.NewStack()
+		a.Qf.PushBreakStack(breakStack)
+		continueStack := util.NewStack()
+		a.Qf.PushContinue(continueStack)
+
+		a.analyseForStatement(child, 0)
+
+		//回填continue出口
+		a.Qf.ClearContinueStack(a.CurrentJmpPos.ContinuePos)
+
+		a.Qf.JmpPoint.Pop()
+		if !a.Qf.JmpPoint.IsEmpty() {
+			a.CurrentJmpPos = a.Qf.JmpPoint.Top().(*util.ForJmpPos)
+		}
+		//回填break出口
+		a.Qf.ClearBreakStack(a.Qf.NextQuaFormId())
 	case consts.RETURN_STMT:
 		a.analyseReturn(child, 0)
+	case consts.BREAK_STMT:
+		a.analyseBreak(child, 0)
+	case consts.CONTINUE_STMT:
+		a.analyseContinue(child, 0)
 	}
 	a.infoFlag()
 	a.analyseControlStatement(node, next+1)
 }
 
-// analyseIfStatement 分析if语句 TODO: 未完成
+// analyseIfStatement 分析if语句
 func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return
@@ -1371,17 +1439,14 @@ func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
 	switch child.Value {
 	case "if":
 		a.info.Type = "int"
-		//stack := util.NewLogicStack(a.Qf)
-		//a.calStacks.PushLogicStack(stack)
 	case "(":
 		a.Qf.IfFlag = true
 		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
-
 	case ")":
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
 		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
 		//分析完if的判断条件后，需要回填真出口
-		a.calStacks.ClearTrueStack()
+		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
 		a.Qf.IfFlag = false
 	case consts.BOOLEAN_EXPR:
 		a.analyseBoolExp(child, 0)
@@ -1390,15 +1455,15 @@ func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
 	case consts.IF_TAIL:
 		//如果ifTail为空，说明整个if语句结束，需要清空栈
 		if child.Children[0].Value == consts.NULL {
-			a.calStacks.ClearTrueStack()
-			a.calStacks.ClearFalseStack()
+			a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
+			a.calStacks.ClearFalseStack(a.Qf.NextQuaFormId())
 			a.calStacks.ClearCurrentIfStack()
 			a.calStacks.PopCurrentLogicStack()
 		} else { //如果ifTail不为空，说明还有else语句，需要继续分析。回填假出口栈
 			//if语句结束，跳出整个if语句
 			id := a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
 			a.calStacks.CurrentIfQuaStack.Push(id)
-			a.calStacks.ClearFalseStack()
+			a.calStacks.ClearFalseStack(a.Qf.NextQuaFormId())
 			a.calStacks.PopCurrentLogicStack()
 		}
 		a.analyseIfTail(child, 0)
@@ -1407,7 +1472,7 @@ func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
 	a.analyseIfStatement(node, next+1)
 }
 
-// analyseIfTail 分析ifTail语句 TODO: 未完成
+// analyseIfTail 分析ifTail语句
 func (a *Analyser) analyseIfTail(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return
@@ -1425,7 +1490,7 @@ func (a *Analyser) analyseIfTail(node *util.TreeNode, next int) {
 	a.analyseIfTail(node, next+1)
 }
 
-// analyseIfTail0 分析ifTail0语句 TODO: 未完成
+// analyseIfTail0 分析ifTail0语句
 func (a *Analyser) analyseIfTail0(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return
@@ -1446,15 +1511,186 @@ func (a *Analyser) analyseIfTail0(node *util.TreeNode, next int) {
 
 		//else后紧跟的是复合语句，说明整个if语句结束，需要清空栈
 		a.calStacks.ClearCurrentIfStack()
-		a.calStacks.ClearTrueStack()
-		a.calStacks.ClearFalseStack()
+		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
+		a.calStacks.ClearFalseStack(a.Qf.NextQuaFormId())
 		a.calStacks.PopCurrentLogicStack()
 	}
 	a.infoFlag()
 	a.analyseIfTail0(node, next+1)
 }
 
-// analyseReturn 分析return语句 TODO: 未完成
+// analyseWhileStatement 分析while语句
+func (a *Analyser) analyseWhileStatement(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case "while":
+		a.info.Type = "int"
+		//记录continue出口的位置
+		a.CurrentJmpPos.ContinuePos = a.Qf.NextQuaFormId()
+	case "(":
+		a.Qf.IfFlag = true
+		a.CurrentJmpPos.ConditionPos = a.Qf.NextQuaFormId()
+		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
+	case ")":
+		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
+		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//分析完while的判断条件后，需要回填真出口
+		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
+		a.Qf.IfFlag = false
+	case consts.BOOLEAN_EXPR:
+		a.analyseBoolExp(child, 0)
+	case consts.COMPOUND_STMT:
+		a.analyseCompoundStatement(child, 0)
+		//while语句结束，跳回到while的判断条件，然后回填假出口
+		a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, a.CurrentJmpPos.ConditionPos)
+		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
+		a.calStacks.ClearFalseStack(a.Qf.NextQuaFormId())
+		a.calStacks.PopCurrentLogicStack()
+	}
+	a.infoFlag()
+	a.analyseWhileStatement(node, next+1)
+}
+
+// analyseDoWhileStatement 分析do while语句
+func (a *Analyser) analyseDoWhileStatement(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case "do":
+	case "while":
+		a.info.Type = "int"
+		//记录continue出口的位置
+		a.CurrentJmpPos.ContinuePos = a.Qf.NextQuaFormId()
+	case "(":
+		a.Qf.IfFlag = true
+		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
+	case ")":
+		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
+		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//在do while语句中，条件判断结束后，真出口跳转到语句开始位置，假出口跳转到下一条指令
+		a.calStacks.ClearTrueStack(a.CurrentJmpPos.ConditionPos)
+		a.calStacks.ClearFalseStack(a.Qf.NextQuaFormId())
+		a.Qf.IfFlag = false
+	case ";":
+		a.flag = true
+		a.calStacks.PopCurrentLogicStack()
+	case consts.BOOLEAN_EXPR:
+		a.analyseBoolExp(child, 0)
+	case consts.COMPOUND_STMT:
+		//记录语句开始的位置
+		a.CurrentJmpPos.ConditionPos = a.Qf.NextQuaFormId()
+		a.analyseCompoundStatement(child, 0)
+	}
+	a.infoFlag()
+	a.analyseDoWhileStatement(node, next+1)
+}
+
+// analyseForStatement 分析for语句
+func (a *Analyser) analyseForStatement(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case "for":
+	case "(":
+	case ")":
+	case ";":
+
+	case consts.ASSIGNMENT_EXPR:
+		a.analyseAssignmentExp(child, 0)
+		if !a.err {
+			a.clearCalStacks()
+			a.changeVarTable()
+		}
+		a.calStacks.Clear()
+		a.flag = true
+		a.err = false
+		//for语句中的第一个赋值表达式，只执行一次
+		if node.Children[next+1].Value == ";" {
+			a.Qf.IfFlag = true
+			//记录判断条件的位置
+			a.CurrentJmpPos.ConditionPos = a.Qf.NextQuaFormId()
+			a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
+		} else {
+			//每次循环结束后，先执行赋值表达式，再跳转到for语句中的条件判断
+			a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, a.CurrentJmpPos.ConditionPos)
+		}
+	case consts.BOOLEAN_EXPR:
+		a.analyseBoolExp(child, 0)
+		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
+		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		a.Qf.IfFlag = false
+		//记录每次循环后需要执行的赋值表达式的位置
+		a.CurrentJmpPos.AssignPos = a.Qf.NextQuaFormId()
+		//记录continue出口的位置
+		a.CurrentJmpPos.ContinuePos = a.Qf.NextQuaFormId()
+	case consts.COMPOUND_STMT:
+		//复合语句中的第一条语句即为真出口，所以在此处要回填真出口
+		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
+		a.analyseCompoundStatement(child, 0)
+		//for语句的复合语句结束后，先跳转到for语句中的第二个赋值表达式，再跳转到for的判断条件，最后回填假出口
+		a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, a.CurrentJmpPos.AssignPos)
+		a.calStacks.ClearFalseStack(a.Qf.NextQuaFormId())
+		a.calStacks.PopCurrentLogicStack()
+	}
+	a.infoFlag()
+	a.analyseForStatement(node, next+1)
+}
+
+// analyseBreak 分析break语句
+func (a *Analyser) analyseBreak(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case "break":
+		//break跳转的位置是需要回填的
+		id := a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
+		a.Qf.CurrentBreakStack.Push(id)
+	}
+	a.infoFlag()
+	a.analyseBreak(node, next+1)
+}
+
+// analyseContinue 分析continue语句
+func (a *Analyser) analyseContinue(node *util.TreeNode, next int) {
+	if next >= len(node.Children) || !isLegalNode(node) {
+		return
+	}
+	if a.info == nil {
+		a.initInfo()
+	}
+	child := node.Children[next]
+	switch child.Value {
+	case "continue":
+		//continue跳转的位置是需要回填的
+		id := a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
+		a.Qf.CurrentContinueStack.Push(id)
+	}
+	a.infoFlag()
+	a.analyseBreak(node, next+1)
+}
+
+// analyseReturn 分析return语句
 func (a *Analyser) analyseReturn(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return
@@ -1472,7 +1708,7 @@ func (a *Analyser) analyseReturn(node *util.TreeNode, next int) {
 	a.analyseReturn(node, next+1)
 }
 
-// analyseReturn0 分析return0语句 TODO: 未完成
+// analyseReturn0 分析return0语句
 func (a *Analyser) analyseReturn0(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return
@@ -1673,7 +1909,7 @@ func (a *Analyser) analyseAssignmentExp(node *util.TreeNode, next int) {
 	a.analyseAssignmentExp(node, next+1)
 }
 
-// analyseFunctionBlock 分析函数块	TODO:return语句的处理
+// analyseFunctionBlock 分析函数块	TODO:return语句的处理?
 func (a *Analyser) analyseFunctionBlock(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return

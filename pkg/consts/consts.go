@@ -291,6 +291,7 @@ const (
 	QUA_ELSE                            //else
 	QUA_SYS                             //标识main函数结束
 	QUA_MOVE                            //标识逻辑运算出口栈需要转移
+	QUA_NORELA                          //无关系运算符
 )
 
 var QuaFormMap = map[int]string{
@@ -312,8 +313,8 @@ var QuaFormMap = map[int]string{
 	QUA_LT:                "<",
 	QUA_LE:                "<=",
 	QUA_JMP:               "jmp",
-	QUA_JT:                "jt",
-	QUA_JF:                "jf",
+	QUA_JT:                "jnz",
+	QUA_JF:                "jz",
 	QUA_JMPGT:             "j>",
 	QUA_JMPGE:             "j>=",
 	QUA_JMPLT:             "j<",
@@ -336,4 +337,5 @@ var QuaFormMap = map[int]string{
 	QUA_ELSE:              "else",
 	QUA_SYS:               "sys",
 	QUA_MOVE:              "move",
+	QUA_NORELA:            "norela",
 }

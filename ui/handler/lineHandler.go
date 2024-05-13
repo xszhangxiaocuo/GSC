@@ -37,10 +37,10 @@ func (l *LineHandler) DelLine(context []byte) string {
 	result := make([]byte, 0)
 	for i := 0; i < len(context); i++ {
 		ch := context[i]
-		if i < 3 { //前三个字节为第一行添加的行号
+		if i < 3 { // 前三个字节为第一行添加的行号
 			continue
 		}
-		if ch == '\n' { //换行跳过三个加入的行号字节
+		if ch == '\n' { // 换行跳过三个加入的行号字节
 			i += 3
 		}
 

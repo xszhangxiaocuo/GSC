@@ -6,25 +6,85 @@ import (
 
 // quaForm 四元式
 type quaForm struct {
-	Id     int //四元式编号
+	Id     int // 四元式编号
 	Op     any
 	Arg1   any
 	Arg2   any
 	Result any
 }
 
+// ForJmpPos 记录循环的条件判断位置，以及第二个赋值表达式位置
+type ForJmpPos struct {
+	ConditionPos int //条件判断位置
+	AssignPos    int //第二个赋值表达式位置
+	ContinuePos  int //遇到continue的退出位置
+}
+
+func NewForJmpPos() *ForJmpPos {
+	return &ForJmpPos{
+		ConditionPos: -1,
+		AssignPos:    -1,
+		ContinuePos:  -1,
+	}
+}
+
 // QuaFormList 四元式列表
 type QuaFormList struct {
-	QuaForms []*quaForm
-	Count    int  // 临时变量计数
-	IfFlag   bool //标记当前是否在处理if语句的判断条件
+	QuaForms             []*quaForm
+	Count                int         // 临时变量计数
+	IfFlag               bool        // 标记当前是否在处理if语句的判断条件
+	JmpPoint             *Stack[any] // 标记循环的起始位置的四元式编号
+	BreakStacks          *Stack[any]
+	ContinueStacks       *Stack[any]
+	CurrentBreakStack    *Stack[any] // 需要回填的break四元式编号
+	CurrentContinueStack *Stack[any] // 需要回填的continue四元式编号
+	RelaOp               bool        // 标记当前运算过程中是否有关系运算符
 }
 
 // NewQuaFormList 创建四元式列表
 func NewQuaFormList() *QuaFormList {
 	return &QuaFormList{
-		QuaForms: make([]*quaForm, 0),
-		Count:    0,
+		QuaForms:       make([]*quaForm, 0),
+		Count:          0,
+		JmpPoint:       NewStack(),
+		BreakStacks:    NewStack(),
+		ContinueStacks: NewStack(),
+	}
+}
+
+// PushBreakStack 压入break栈
+func (q *QuaFormList) PushBreakStack(stack *Stack[any]) {
+	q.BreakStacks.Push(stack)
+	q.CurrentBreakStack = stack
+}
+
+// ClearBreakStack 清空break栈
+func (q *QuaFormList) ClearBreakStack(id int) {
+	for q.CurrentBreakStack.Top() != nil {
+		top := q.CurrentBreakStack.Pop().(int)
+		q.QuaForms[top].Result = id
+	}
+	q.BreakStacks.Pop()
+	if q.BreakStacks.Top() != nil {
+		q.CurrentBreakStack = q.BreakStacks.Top().(*Stack[any])
+	}
+}
+
+// PushContinue 压入continue栈
+func (q *QuaFormList) PushContinue(stack *Stack[any]) {
+	q.ContinueStacks.Push(stack)
+	q.CurrentContinueStack = stack
+}
+
+// ClearContinueStack 清空continue栈
+func (q *QuaFormList) ClearContinueStack(id int) {
+	for q.CurrentContinueStack.Top() != nil {
+		top := q.CurrentContinueStack.Pop().(int)
+		q.QuaForms[top].Result = id
+	}
+	q.ContinueStacks.Pop()
+	if q.ContinueStacks.Top() != nil {
+		q.CurrentContinueStack = q.ContinueStacks.Top().(*Stack[any])
 	}
 }
 

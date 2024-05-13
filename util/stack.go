@@ -69,18 +69,18 @@ func NewLogicStack(qf *QuaFormList) *LogicStack {
 }
 
 // ClearTrueStack 清空真出口栈
-func (l *LogicStack) ClearTrueStack() {
+func (l *LogicStack) ClearTrueStack(nextId int) {
 	for !l.TrueStack.IsEmpty() {
 		id := l.TrueStack.Pop().(int)
-		l.qf.QuaForms[id].Result = l.qf.NextQuaFormId()
+		l.qf.QuaForms[id].Result = nextId
 	}
 }
 
 // ClearFalseStack 清空假出口栈
-func (l *LogicStack) ClearFalseStack() {
+func (l *LogicStack) ClearFalseStack(nextId int) {
 	for !l.FalseStack.IsEmpty() {
 		id := l.FalseStack.Pop().(int)
-		l.qf.QuaForms[id].Result = l.qf.NextQuaFormId()
+		l.qf.QuaForms[id].Result = nextId
 	}
 }
 
@@ -91,7 +91,6 @@ type CalStack struct {
 	qf         *QuaFormList
 	Result     any
 	IfQuaStack *Stack[any] //if四元式栈，这个栈放的是一个if语句结束后需要跳转的四元式，跳转到一个完整的if语句的结束位置
-	relaOp     int         //标记当前运算过程中关系运算符数量
 	currentOp  any         //当前运算符
 	LogicStack *LogicStack //逻辑栈
 }
@@ -151,25 +150,25 @@ func (c *CalStack) priority(op any) int {
 	switch op {
 	case consts.QUA_LEFTSMALLBRACKET, consts.QUA_RIGHTSMALLBRACKET:
 		return 1
-	case consts.QUA_NOT, consts.QUA_NEGATIVE, consts.QUA_POSITIVE:
-		return 2
-	case consts.QUA_MUL, consts.QUA_DIV, consts.QUA_MOD:
-		return 3
-	case consts.QUA_ADD, consts.QUA_SUB:
-		return 4
-	case consts.QUA_GT, consts.QUA_GE, consts.QUA_LT, consts.QUA_LE:
-		return 5
-	case consts.QUA_EQ, consts.QUA_NE:
-		return 6
-	case consts.QUA_MOVE:
-		return 7
-	case consts.QUA_AND:
-		return 8
-	case consts.QUA_OR:
-		return 9
 	case consts.QUA_PARAM:
-		return 10
+		return 2
 	case consts.QUA_CALL:
+		return 3
+	case consts.QUA_NOT, consts.QUA_NEGATIVE, consts.QUA_POSITIVE:
+		return 4
+	case consts.QUA_MUL, consts.QUA_DIV, consts.QUA_MOD:
+		return 5
+	case consts.QUA_ADD, consts.QUA_SUB:
+		return 6
+	case consts.QUA_GT, consts.QUA_GE, consts.QUA_LT, consts.QUA_LE:
+		return 7
+	case consts.QUA_EQ, consts.QUA_NE:
+		return 8
+	case consts.QUA_MOVE, consts.QUA_NORELA:
+		return 9
+	case consts.QUA_AND:
+		return 10
+	case consts.QUA_OR:
 		return 11
 	case consts.QUA_ASSIGNMENT:
 		return 12
@@ -212,8 +211,9 @@ func (c *CalStack) PushIfOp(ope int) {
 		c.currentOp = nil
 	}()
 	if c.isRelOp(ope) {
-		c.relaOp++
+		c.qf.RelaOp = true
 	}
+
 	top := c.OpStack.Top()
 	for c.priority(top) <= c.priority(ope) {
 		c.Cal()
@@ -223,6 +223,9 @@ func (c *CalStack) PushIfOp(ope int) {
 	//&&和||运算符不入栈
 	if ope != consts.QUA_AND && ope != consts.QUA_OR {
 		c.OpStack.Push(ope)
+	} else if c.qf.IfFlag && c.qf.RelaOp == false {
+		c.OpStack.Push(consts.QUA_NORELA)
+		c.Cal()
 	}
 }
 
@@ -279,6 +282,40 @@ func (c *CalStack) CalIf() {
 	}
 
 	num2 := c.NumStack.Pop()
+
+	if op == consts.QUA_NORELA {
+		if num2 == nil {
+			return
+		}
+		if consts.QUA_AND == c.currentOp {
+			id := c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JT], num2, nil, nil)
+			c.qf.QuaForms[id].Result = id + 2
+			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
+			c.LogicStack.FalseStack.Push(id + 1)
+			return
+
+		}
+
+		if consts.QUA_OR == c.currentOp {
+			id := c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JF], num2, nil, nil)
+			c.qf.QuaForms[id].Result = id + 2
+			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
+			c.LogicStack.TrueStack.Push(id + 1)
+			return
+
+		}
+
+		// 当前没有运算符入栈
+		if c.currentOp == nil {
+			id := c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JT], num2, nil, nil)
+			c.LogicStack.TrueStack.Push(id)
+			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JF], num2, nil, nil)
+			c.LogicStack.FalseStack.Push(id + 1)
+			return
+		}
+
+	}
+
 	if consts.QUA_NOT == op || consts.QUA_NEGATIVE == op {
 		result := c.qf.GetTemp()
 		c.qf.AddQuaForm(consts.QuaFormMap[op.(int)], num2, nil, result)
@@ -310,7 +347,7 @@ func (c *CalStack) CalIf() {
 	}
 
 	if c.isRelOp(op) {
-		c.relaOp--
+		c.qf.RelaOp = false
 		if c.currentOp == consts.QUA_AND {
 			id := c.qf.AddQuaForm(c.whichLogicOp(op), num1, num2, nil)
 			c.qf.QuaForms[id].Result = id + 2
@@ -321,8 +358,8 @@ func (c *CalStack) CalIf() {
 			c.LogicStack.TrueStack.Push(id)
 			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
 			c.qf.QuaForms[id+1].Result = id + 2
-			//遇到||运算符，清空假出口栈
-			c.LogicStack.ClearFalseStack()
+			// 遇到||运算符，清空假出口栈
+			c.LogicStack.ClearFalseStack(c.qf.NextQuaFormId())
 		} else if c.currentOp == nil {
 			id := c.qf.AddQuaForm(c.whichLogicOp(op), num1, num2, nil)
 			c.LogicStack.TrueStack.Push(id)
@@ -337,70 +374,41 @@ func (c *CalStack) CalIf() {
 	c.qf.AddQuaForm(consts.QuaFormMap[op.(int)], num1, num2, result)
 	c.NumStack.Push(result)
 
-	if c.relaOp == 0 && c.OpStack.IsEmpty() && c.NumStack.Size() == 1 {
-		if consts.QUA_AND == c.currentOp {
-			id := c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JT], num2, nil, nil)
-			c.qf.QuaForms[id].Result = id + 2
-			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
-			c.LogicStack.FalseStack.Push(id + 1)
-			return
-
-		}
-
-		if consts.QUA_OR == c.currentOp {
-			id := c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JF], num2, nil, nil)
-			c.qf.QuaForms[id].Result = id + 2
-			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
-			c.LogicStack.TrueStack.Push(id + 1)
-			return
-
-		}
-
-		//当前没有运算符入栈
-		if c.currentOp == nil {
-			id := c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JT], num2, nil, nil)
-			c.LogicStack.TrueStack.Push(id)
-			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JF], nil, nil, nil)
-			c.LogicStack.FalseStack.Push(id + 1)
-		}
-
-		return
-	}
 }
 
 func (c *CalStack) move() {
-	stack, ok := c.NumStack.Pop().(*LogicStack) //此处取出的必须是逻辑栈
+	stack, ok := c.NumStack.Pop().(*LogicStack) // 此处取出的必须是逻辑栈
 	if !ok {
 		log.Println("move error")
 		return
 	}
-	//当前运算符为&&，将真出口栈中的四元式的结果设置为下一个四元式的id
+	// 当前运算符为&&，将真出口栈中的四元式的结果设置为下一个四元式的id
 	if c.currentOp == consts.QUA_AND {
 		for !stack.TrueStack.IsEmpty() {
 			id := stack.TrueStack.Pop().(int)
 			c.qf.QuaForms[id].Result = c.qf.NextQuaFormId()
 		}
-		//将上一个括号内传递出来的假出口栈中的四元式id放入当前逻辑栈的假出口栈中
+		// 将上一个括号内传递出来的假出口栈中的四元式id放入当前逻辑栈的假出口栈中
 		for !stack.FalseStack.IsEmpty() {
 			id := stack.FalseStack.Pop().(int)
 			c.LogicStack.FalseStack.Push(id)
 		}
 		return
 	}
-	//当前运算符为||，将假出口栈中的四元式的结果设置为下一个四元式的id
+	// 当前运算符为||，将假出口栈中的四元式的结果设置为下一个四元式的id
 	if c.currentOp == consts.QUA_OR {
 		for !stack.FalseStack.IsEmpty() {
 			id := stack.FalseStack.Pop().(int)
 			c.qf.QuaForms[id].Result = c.qf.NextQuaFormId()
 		}
-		//将上一个括号内传递出来的真出口栈中的四元式id放入当前逻辑栈的真出口栈中
+		// 将上一个括号内传递出来的真出口栈中的四元式id放入当前逻辑栈的真出口栈中
 		for !stack.TrueStack.IsEmpty() {
 			id := stack.TrueStack.Pop().(int)
 			c.LogicStack.TrueStack.Push(id)
 		}
 		return
 	}
-	//当前没有运算符入栈，将上一个括号传递出来的真出口和假出口中的四元式id放到当前逻辑栈中
+	// 当前没有运算符入栈，将上一个括号传递出来的真出口和假出口中的四元式id放到当前逻辑栈中
 	if c.currentOp == nil {
 		for !stack.TrueStack.IsEmpty() {
 			id := stack.TrueStack.Pop().(int)
@@ -444,12 +452,12 @@ func (c *CalStack) ClearCurrentIfStack() {
 
 // CalStacks 计算栈集合
 type CalStacks struct {
-	CurrentStack      *CalStack   //当前计算栈
-	BracketStack      *Stack[any] //括号栈，每遇到一个左括号，就新建一个计算栈，遇到右括号，就将计算栈出栈
-	IfQuaStack        *Stack[any] //if四元式栈，这个栈放的是一个if语句结束后需要跳转的四元式
-	CurrentIfQuaStack *Stack[any] //当前if四元式栈，用于存放还不能确定跳转位置的四元式
-	LogicStack        *Stack[any] //逻辑栈
-	CurrentLogicStack *LogicStack //当前if语句的逻辑栈
+	CurrentStack      *CalStack   // 当前计算栈
+	BracketStack      *Stack[any] // 括号栈，每遇到一个左括号，就新建一个计算栈，遇到右括号，就将计算栈出栈
+	IfQuaStack        *Stack[any] // if四元式栈，这个栈放的是一个if语句结束后需要跳转的四元式
+	CurrentIfQuaStack *Stack[any] // 当前if四元式栈，用于存放还不能确定跳转位置的四元式
+	LogicStack        *Stack[any] // 逻辑栈
+	CurrentLogicStack *LogicStack // 当前if语句的逻辑栈
 	qf                *QuaFormList
 	Result            any
 }
@@ -490,17 +498,21 @@ func (c *CalStacks) PushOpe(ope int) {
 		return
 	}
 	if ope == consts.QUA_RIGHTSMALLBRACKET {
+		if c.qf.RelaOp == false && c.qf.IfFlag {
+			c.CurrentStack.OpStack.Push(consts.QUA_NORELA)
+			c.CurrentStack.Cal()
+		}
 		c.CurrentStack.CalAll()
 		tempResult := c.CurrentStack.NumStack.Top()
 		logicStack := c.CurrentStack.LogicStack
 		c.BracketStack.Pop()
 		c.CurrentStack = c.BracketStack.Top().(*CalStack)
 		if c.qf.IfFlag {
-			c.CurrentStack.NumStack.Push(logicStack) //将括号内的逻辑栈传递给上一个计算栈
+			c.CurrentStack.NumStack.Push(logicStack) // 将括号内的逻辑栈传递给上一个计算栈
 			c.CurrentStack.OpStack.Push(consts.QUA_MOVE)
 		}
 
-		if c.CurrentStack != nil && !c.qf.IfFlag { //栈不为空，说明当前只是计算完了一个括号内的表达式，要生成一个临时变量放入当前数字栈
+		if c.CurrentStack != nil && !c.qf.IfFlag { // 栈不为空，说明当前只是计算完了一个括号内的表达式，要生成一个临时变量放入当前数字栈
 			c.CurrentStack.PushNum(tempResult)
 		}
 		return
@@ -509,7 +521,7 @@ func (c *CalStacks) PushOpe(ope int) {
 }
 
 func (c *CalStacks) CalIf() {
-	c.CurrentStack.Cal() //计算一次move操作
+	c.CurrentStack.Cal() // 计算一次move操作
 
 	for !c.CurrentStack.LogicStack.TrueStack.IsEmpty() {
 		id := c.CurrentStack.LogicStack.TrueStack.Pop().(int)
@@ -567,10 +579,10 @@ func (c *CalStacks) PopCurrentLogicStack() {
 	}
 }
 
-func (c *CalStacks) ClearTrueStack() {
-	c.CurrentLogicStack.ClearTrueStack()
+func (c *CalStacks) ClearTrueStack(id int) {
+	c.CurrentLogicStack.ClearTrueStack(id)
 }
 
-func (c *CalStacks) ClearFalseStack() {
-	c.CurrentLogicStack.ClearFalseStack()
+func (c *CalStacks) ClearFalseStack(id int) {
+	c.CurrentLogicStack.ClearFalseStack(id)
 }

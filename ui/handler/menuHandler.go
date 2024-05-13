@@ -14,10 +14,10 @@ import (
 )
 
 type MenuHandler struct {
-	LexerFlag  bool               //标记是否已经运行词法分析且没有错误
-	ParserFlag bool               //标记是否已经运行语法分析且没有错误
-	Parser     *compiler.Parser   //语法分析器
-	Analyser   *compiler.Analyser //语义分析器
+	LexerFlag  bool               // 标记是否已经运行词法分析且没有错误
+	ParserFlag bool               // 标记是否已经运行语法分析且没有错误
+	Parser     *compiler.Parser   // 语法分析器
+	Analyser   *compiler.Analyser // 语义分析器
 }
 
 func NewMenuHandler() *MenuHandler {
