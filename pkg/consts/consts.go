@@ -339,3 +339,11 @@ var QuaFormMap = map[int]string{
 	QUA_MOVE:              "move",
 	QUA_NORELA:            "norela",
 }
+
+// 汇编代码头
+const (
+	// 汇编代码头
+	ASM_HEAD = "assume cs:code,ds:data,ss:stack,es:extended\n\nextended segment\n\tdb 1024 dup (0)\nextended ends\n\nstack segment\n\tdb 1024 dup (0)\nstack ends\n\ndispmsg macro message\n    lea dx, message\n    mov ah, 9\n    int 21h\nendm\n\ndata segment\n\t_buff_p db 256 dup (24h)\n\t_buff_s db 256 dup (0)\n\t_msg_p db 0ah,'Output:',0\n\t_msg_s db 0ah,'Input:',0\n    next_row db 0dh,0ah,'$'\n    error db 'input error, please re-enter: ','$'"
+	// 入口
+	ASM_START = "data ends\n\ncode segment\nstart:\tmov ax,extended\n\tmov es,ax\n\tmov ax,stack\n\tmov ss,ax\n\tmov sp,1024\n\tmov bp,sp\n\tmov ax,data\n\tmov ds,ax"
+)

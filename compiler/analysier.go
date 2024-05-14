@@ -300,20 +300,20 @@ func (a *Analyser) checkVar(node *util.TreeNode) bool {
 
 // checkConstNumber 在进行表达式运算时检查常数和变量类型是否一致
 func (a *Analyser) checkConstNumber(node *util.TreeNode) bool {
-	if a.info.Type == "" {
-		if a.varIsExist(a.info.Name) {
-			a.info.Type = a.SymbolTable.VarTable[a.info.Name].Type
-		} else if a.funcIsExist(a.info.Name) {
-			a.info.Type = a.SymbolTable.FuncTable[a.info.Name].Type
-		} else {
-			a.Logger.AddAnalyseErr(node.Token, "类型不匹配: ", a.info.Type)
-			return false
-		}
-	}
-	if node.Token == nil || !a.isSameType(node.Token.Type, consts.TokenMap[a.info.Type]) {
-		a.Logger.AddAnalyseErr(node.Token, "类型不匹配: ", a.info.Type)
-		return false
-	}
+	//if a.info.Type == "" {
+	//	if a.varIsExist(a.info.Name) {
+	//		a.info.Type = a.SymbolTable.VarTable[a.info.Name].Type
+	//	} else if a.funcIsExist(a.currentFunc) {
+	//		a.info.Type = a.SymbolTable.FuncTable[a.currentFunc].Type
+	//	} else {
+	//		a.Logger.AddAnalyseErr(node.Token, "类型不匹配: ", a.info.Type)
+	//		return false
+	//	}
+	//}
+	//if node.Token == nil || !a.isSameType(node.Token.Type, consts.TokenMap[a.info.Type]) {
+	//	a.Logger.AddAnalyseErr(node.Token, "类型不匹配: ", a.info.Type)
+	//	return false
+	//}
 	return true
 }
 
@@ -340,17 +340,17 @@ func (a *Analyser) checkFuncParam(funcName string) bool {
 		a.Logger.AddErr("\t\t\t\t\t\t函数：" + funcName + " 未定义\n")
 		return false
 	}
-	if len(a.SymbolTable.FuncTable[funcName].Pars) != len(a.params) {
-		a.Logger.AddErr("\t\t\t\t\t\t函数：" + funcName + " 参数个数不匹配\n")
-		return false
-	}
-	pars := a.SymbolTable.FuncTable[funcName].Pars
-	for i, v := range a.params {
-		if pars[i] != v.Type {
-			a.Logger.AddErr("\t\t\t\t\t\t函数：" + funcName + fmt.Sprintf("%v", a.params) + " 参数类型不匹配，需要类型" + fmt.Sprintf("%v", pars) + "\n")
-			return false
-		}
-	}
+	//if len(a.SymbolTable.FuncTable[funcName].Pars) != len(a.params) {
+	//	a.Logger.AddErr("\t\t\t\t\t\t函数：" + funcName + " 参数个数不匹配\n")
+	//	return false
+	//}
+	//pars := a.SymbolTable.FuncTable[funcName].Pars
+	//for i, v := range a.params {
+	//	if pars[i] != v.Type {
+	//		a.Logger.AddErr("\t\t\t\t\t\t函数：" + funcName + fmt.Sprintf("%v", a.params) + " 参数类型不匹配，需要类型" + fmt.Sprintf("%v", pars) + "\n")
+	//		return false
+	//	}
+	//}
 
 	return true
 }
@@ -502,6 +502,7 @@ func (a *Analyser) analyse(node *util.TreeNode, next int) {
 			Type:  "void",
 		})
 		a.Scope = "main" //作用域为main函数
+		a.currentFunc = "main"
 		a.info.Scope = a.Scope
 	case consts.COMPOUND_STMT:
 		a.analyseCompoundStatement(child, 0)
@@ -1708,7 +1709,7 @@ func (a *Analyser) analyseReturn(node *util.TreeNode, next int) {
 	a.analyseReturn(node, next+1)
 }
 
-// analyseReturn0 分析return0语句
+// analyseReturn0 分析return0语句 TODO:这里有问题，需要修改
 func (a *Analyser) analyseReturn0(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return

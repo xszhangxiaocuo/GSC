@@ -150,25 +150,25 @@ func (c *CalStack) priority(op any) int {
 	switch op {
 	case consts.QUA_LEFTSMALLBRACKET, consts.QUA_RIGHTSMALLBRACKET:
 		return 1
-	case consts.QUA_PARAM:
-		return 2
-	case consts.QUA_CALL:
-		return 3
 	case consts.QUA_NOT, consts.QUA_NEGATIVE, consts.QUA_POSITIVE:
-		return 4
+		return 2
 	case consts.QUA_MUL, consts.QUA_DIV, consts.QUA_MOD:
-		return 5
+		return 3
 	case consts.QUA_ADD, consts.QUA_SUB:
-		return 6
+		return 4
 	case consts.QUA_GT, consts.QUA_GE, consts.QUA_LT, consts.QUA_LE:
-		return 7
+		return 5
 	case consts.QUA_EQ, consts.QUA_NE:
-		return 8
+		return 6
 	case consts.QUA_MOVE, consts.QUA_NORELA:
-		return 9
+		return 7
 	case consts.QUA_AND:
-		return 10
+		return 8
 	case consts.QUA_OR:
+		return 9
+	case consts.QUA_PARAM:
+		return 10
+	case consts.QUA_CALL:
 		return 11
 	case consts.QUA_ASSIGNMENT:
 		return 12
@@ -197,7 +197,7 @@ func (c *CalStack) PushOp(ope int) {
 	}
 
 	top := c.OpStack.Top()
-	for c.priority(top) <= c.priority(ope) {
+	for !(top == consts.QUA_PARAM && ope == consts.QUA_PARAM) && c.priority(top) <= c.priority(ope) {
 		c.Cal()
 		top = c.OpStack.Top()
 	}
@@ -245,6 +245,7 @@ func (c *CalStack) Cal() {
 	}
 	if consts.QUA_PARAM == op {
 		c.qf.AddQuaForm(consts.QuaFormMap[op.(int)], num2, nil, nil)
+
 		return
 	}
 
@@ -535,6 +536,7 @@ func (c *CalStacks) CalIf() {
 
 func (c *CalStacks) CalAll() {
 	c.CurrentStack.CalAll()
+	c.CurrentStack.Result = c.CurrentStack.NumStack.Top()
 	c.Result = c.CurrentStack.Result
 }
 
