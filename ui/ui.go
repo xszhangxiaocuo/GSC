@@ -106,7 +106,6 @@ func InitApp() {
 		fyne.NewMenuItem("语法分析器", menuHandler.ParserHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
 	)
 
-	//TODO：完善语义分析菜单选项函数
 	analysierMenu := fyne.NewMenu("语义分析",
 		fyne.NewMenuItem("语义分析器", menuHandler.AnalysierHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
 	)

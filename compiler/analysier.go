@@ -222,6 +222,8 @@ func (a *Analyser) addVarTable() {
 				a.info.Value = ' '
 			}
 		}
+		a.info.Scope = a.Scope
+		a.info.Level = a.Level
 		a.SymbolTable.AddVariable(a.info)
 	}
 }
@@ -281,20 +283,25 @@ func (a *Analyser) checkVar(node *util.TreeNode) bool {
 	//	}
 	//}
 	//
-	//var v *Info
-	//if a.varIsExist(node.Value) {
-	//	v, _ = a.SymbolTable.FindVariable(node.Value)
-	//} else if a.constIsExist(node.Value) {
-	//	v, _ = a.SymbolTable.FindConstant(node.Value)
-	//} else {
-	//	a.Logger.AddAnalyseErr(node.Token, "变量类型未知")
-	//	return false
-	//}
-	//
+	var v *Info
+	if a.varIsExist(node.Value) {
+		v, _ = a.SymbolTable.FindVariable(node.Value)
+	} else if a.constIsExist(node.Value) {
+		v, _ = a.SymbolTable.FindConstant(node.Value)
+	} else {
+		a.Logger.AddAnalyseErr(node.Token, "变量类型未知")
+		return false
+	}
+
 	//if v.Type != a.info.Type {
 	//	a.Logger.AddAnalyseErr(node.Token, "类型不匹配: ", a.info.Type)
 	//	return false
 	//}
+	//检查变量作用域,只有在同一作用域下或者在更高作用域下才能访问
+	if !(v.Level == 0 || v.Scope == a.info.Scope && v.Level <= a.info.Level) {
+		a.Logger.AddAnalyseErr(node.Token, "变量作用域不匹配")
+		return false
+	}
 	return true
 }
 
@@ -415,6 +422,9 @@ func (a *Analyser) constIsExist(name string) bool {
 
 // funcIsExist 检查函数是否存在
 func (a *Analyser) funcIsExist(name string) bool {
+	if name == "read" || name == "write" {
+		return true
+	}
 	if _, ok := a.SymbolTable.FindFunction(name); ok {
 		return true
 	}
@@ -1616,7 +1626,7 @@ func (a *Analyser) analyseForStatement(node *util.TreeNode, next int) {
 		a.analyseAssignmentExp(child, 0)
 		if !a.err {
 			a.clearCalStacks()
-			a.changeVarTable()
+			//a.changeVarTable()
 		}
 		a.calStacks.Clear()
 		a.flag = true
@@ -1746,7 +1756,7 @@ func (a *Analyser) analyseAssignmentStatement(node *util.TreeNode, next int) {
 	case ";":
 		if !a.err {
 			a.clearCalStacks()
-			a.changeVarTable()
+			//a.changeVarTable()
 		}
 		a.calStacks.Clear()
 		a.flag = true
@@ -1898,8 +1908,13 @@ func (a *Analyser) analyseAssignmentExp(node *util.TreeNode, next int) {
 			a.Logger.AddAnalyseErr(child.Children[0].Token, "变量未定义")
 			a.err = true
 		} else {
-			a.info.Name = child.Children[0].Value
-			a.calStacks.PushNum(child.Children[0].Value)
+			if a.checkVar(child.Children[0]) {
+				a.info.Name = child.Children[0].Value
+				a.calStacks.PushNum(child.Children[0].Value)
+			} else {
+				a.err = true
+			}
+
 		}
 	case "=":
 		a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)

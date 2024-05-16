@@ -14,10 +14,13 @@ import (
 )
 
 type MenuHandler struct {
-	LexerFlag  bool               // 标记是否已经运行词法分析且没有错误
-	ParserFlag bool               // 标记是否已经运行语法分析且没有错误
-	Parser     *compiler.Parser   // 语法分析器
-	Analyser   *compiler.Analyser // 语义分析器
+	LexerFlag    bool               // 标记是否已经运行词法分析且没有错误
+	ParserFlag   bool               // 标记是否已经运行语法分析且没有错误
+	AnalyserFlag bool               // 标记是否已经运行语义分析且没有错误
+	Parser       *compiler.Parser   // 语法分析器
+	Analyser     *compiler.Analyser // 语义分析器
+	QuaForm      *util.QuaFormList  // 四元式列表
+	Target       *compiler.Target   // 目标代码生成器
 }
 
 func NewMenuHandler() *MenuHandler {
@@ -111,18 +114,22 @@ func (handler *MenuHandler) ParserHandler(input *widget.Entry, output *widget.En
 
 		bottomOutput.SetText(msg)
 		handler.LexerFlag = false
-		handler.ParserFlag = true
+		if errs == 0 {
+			handler.ParserFlag = true
+		}
 	}
 }
 
 func (handler *MenuHandler) AnalysierHandler(input *widget.Entry, output *widget.Entry, bottomOutput *widget.Entry, window fyne.Window) func() {
 	return func() {
+		handler.AnalyserFlag = false
 		if !handler.ParserFlag {
 			dialog.ShowInformation("语义分析", "请先运行通过语法分析！", window)
 			return
 		}
 		handler.Analyser = compiler.NewAnalyser(handler.Parser.AST)
 		handler.Analyser.StartAnalyse()
+		handler.QuaForm = handler.Analyser.Qf
 		result := handler.Analyser.SymbolTable.String() + "\n\n" + handler.Analyser.Qf.PrintQuaFormList()
 		output.SetText(result)
 
@@ -138,5 +145,37 @@ func (handler *MenuHandler) AnalysierHandler(input *widget.Entry, output *widget
 
 		bottomOutput.SetText(msg)
 		handler.LexerFlag = false
+		handler.ParserFlag = false
+		if errs == 0 {
+			handler.AnalyserFlag = true
+		}
+	}
+}
+
+func (handler *MenuHandler) TargetHandler(input *widget.Entry, output *widget.Entry, bottomOutput *widget.Entry, window fyne.Window) func() {
+	return func() {
+		if !handler.AnalyserFlag {
+			dialog.ShowInformation("目标代码生成", "请先运行通过语义分析！", window)
+			return
+		}
+		handler.Target = compiler.NewTarget(handler.QuaForm)
+		handler.Target.GenerateAsmCode()
+		//TODO: 输出汇编代码
+		result := handler.Analyser.SymbolTable.String() + "\n\n" + handler.Analyser.Qf.PrintQuaFormList()
+		output.SetText(result)
+
+		errs := len(handler.Analyser.Logger.Errs)
+		msg := fmt.Sprintf("---------目标代码生成完成---------\n%d error(s)\n\n", errs)
+
+		if errs != 0 {
+			msg += fmt.Sprintf("行:列\t\t种别码\ttoken值\t错误信息\n")
+			for _, err := range handler.Analyser.Logger.Errs {
+				msg += err
+			}
+		}
+
+		bottomOutput.SetText(msg)
+		handler.LexerFlag = false
+		handler.ParserFlag = false
 	}
 }

@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-// quaForm 四元式
-type quaForm struct {
+// QuaForm 四元式
+type QuaForm struct {
 	Id     int // 四元式编号
 	Op     any
 	Arg1   any
@@ -30,7 +30,7 @@ func NewForJmpPos() *ForJmpPos {
 
 // QuaFormList 四元式列表
 type QuaFormList struct {
-	QuaForms             []*quaForm
+	QuaForms             []*QuaForm
 	Count                int         // 临时变量计数
 	IfFlag               bool        // 标记当前是否在处理if语句的判断条件
 	JmpPoint             *Stack[any] // 标记循环的起始位置的四元式编号
@@ -44,7 +44,7 @@ type QuaFormList struct {
 // NewQuaFormList 创建四元式列表
 func NewQuaFormList() *QuaFormList {
 	return &QuaFormList{
-		QuaForms:       make([]*quaForm, 0),
+		QuaForms:       make([]*QuaForm, 0),
 		Count:          0,
 		JmpPoint:       NewStack(),
 		BreakStacks:    NewStack(),
@@ -90,7 +90,7 @@ func (q *QuaFormList) ClearContinueStack(id int) {
 
 // AddQuaForm 创建四元式,并返回四元式编号
 func (q *QuaFormList) AddQuaForm(op, arg1, arg2, result any) int {
-	form := &quaForm{
+	form := &QuaForm{
 		Id:     q.NextQuaFormId(),
 		Op:     op,
 		Arg1:   arg1,
@@ -115,12 +115,12 @@ func (q *QuaFormList) GetTemp() string {
 }
 
 // GetQuaFormList 获取四元式列表
-func (q *QuaFormList) GetQuaFormList() []*quaForm {
+func (q *QuaFormList) GetQuaFormList() []*QuaForm {
 	return q.QuaForms
 }
 
 // GetQuaForm 获取四元式
-func (q *QuaFormList) GetQuaForm(index int) *quaForm {
+func (q *QuaFormList) GetQuaForm(index int) *QuaForm {
 	return q.QuaForms[index]
 }
 
