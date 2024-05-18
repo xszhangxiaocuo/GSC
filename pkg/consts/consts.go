@@ -319,7 +319,7 @@ var QuaFormMap = map[int]string{
 	QUA_JMPGE:             "j>=",
 	QUA_JMPLT:             "j<",
 	QUA_JMPLE:             "j<=",
-	QUA_JMPEQ:             "j=",
+	QUA_JMPEQ:             "j==",
 	QUA_JMPNE:             "j!=",
 	QUA_LABEL:             "label",
 	QUA_CALL:              "call",
@@ -343,7 +343,9 @@ var QuaFormMap = map[int]string{
 // 汇编代码头
 const (
 	// 汇编代码头
-	ASM_HEAD = "assume cs:code,ds:data,ss:stack,es:extended\n\nextended segment\n\tdb 1024 dup (0)\nextended ends\n\nstack segment\n\tdb 1024 dup (0)\nstack ends\n\ndispmsg macro message\n    lea dx, message\n    mov ah, 9\n    int 21h\nendm\n\ndata segment\n\t_buff_p db 256 dup (24h)\n\t_buff_s db 256 dup (0)\n\t_msg_p db 0ah,'Output:',0\n\t_msg_s db 0ah,'Input:',0\n    next_row db 0dh,0ah,'$'\n    error db 'input error, please re-enter: ','$'"
+	ASM_HEAD = "assume cs:code,ds:data,ss:stack,es:extended\n\nextended segment\n\tdb 1024 dup (0)\nextended ends\n\nstack segment\n\tdb 1024 dup (0)\nstack ends\n\ndispmsg macro message\n    lea dx, message\n    mov ah, 9\n    int 21h\nendm\n\ndata segment\n\t_buff_p db 256 dup (24h)\n\t_buff_s db 256 dup (0)\n\t_msg_p db 0ah,'Output:',0\n\t_msg_s db 0ah,'Input:',0\n    next_row db 0dh,0ah,'$'\n    error db 'input error, please re-enter: ','$'\n"
 	// 入口
-	ASM_START = "data ends\n\ncode segment\nstart:\tmov ax,extended\n\tmov es,ax\n\tmov ax,stack\n\tmov ss,ax\n\tmov sp,1024\n\tmov bp,sp\n\tmov ax,data\n\tmov ds,ax"
+	ASM_START = "data ends\n\ncode segment\nstart:\tmov ax,extended\n\tmov es,ax\n\tmov ax,stack\n\tmov ss,ax\n\tmov sp,1024\n\tmov bp,sp\n\tmov ax,data\n\tmov ds,ax\n\n\n"
+	// 汇编代码尾
+	ASM_END = "read proc near\n    push bp\n    mov bp, sp\n    mov bx,offset _msg_s\n\tcall _print\n    push bx\n    push cx\n    push dx\nproc_pre_start:\n    xor ax, ax\n    xor bx, bx\n    xor cx, cx\n    xor dx, dx\nproc_judge_sign:\n    mov ah, 1\n    int 21h\n    cmp al, '-'\n    jne proc_next\n    mov dx, 0ffffh\n    jmp proc_digit_in\nproc_next:\n    cmp al, 30h\n    jb proc_unexpected\n    cmp al, 39h\n    ja proc_unexpected\n    sub al, 30h\n    shl bx, 1\n    mov cx, bx\n    shl bx, 1\n    shl bx, 1\n    add bx, cx\n    add bl, al\n    adc bh, 0\nproc_digit_in:\n    mov ah, 1\n    int 21h\n    jmp proc_next\n\nproc_save:\n    cmp dx, 0ffffh\n    jne proc_result_save\n    neg bx\nproc_result_save:\n    mov ax, bx\n    jmp proc_input_done\n\nproc_unexpected:\n    cmp al, 0dh\n    je proc_save\n    dispmsg next_row\n    dispmsg error\n    jmp proc_pre_start\n\nproc_input_done:\n    pop dx\n    pop cx\n    pop bx\n    pop bp\n    ret\nread endp\n\nwrite proc near\n    push bp\n    mov bp, sp\n    push ax\n    push bx\n    push cx\n    push dx\n    mov bx,offset _msg_p\n\tcall _print\n    xor cx, cx\n    mov bx, [bp+4]\n    test bx, 8000h\n    jz proc_nonneg\n    neg bx\n    mov dl,'-'\n    mov ah, 2\n    int 21h\nproc_nonneg:\n    mov ax, bx\n    cwd\n    mov bx, 10\nproc_div_again:\n    xor dx, dx\n    div bx\n    add dl, 30h\n    push dX\n    inc cx\n    cmp ax, 0\n    jne proc_div_again\nproc_digit_out:\n    pop dx\n    mov ah, 2\n    int 21h\n    loop proc_digit_out\nproc_output_done:\n    pop dx\n    pop cx\n    pop bx\n    pop ax\n    pop bp\n    ret 2\nwrite endp\n\n_print:\tmov si,0\n\tmov di,offset _buff_p\n_p_lp_1:\tmov al,ds:[bx+si]\n\tcmp al,0\n\tje _p_brk_1\n\tmov ds:[di],al\n\tinc si\n\tinc di\n\tjmp short _p_lp_1\n_p_brk_1:\tmov dx,offset _buff_p\n\tmov ah,09h\n\tint 21h\n\tmov cx,si\n\tmov di,offset _buff_p\n_p_lp_2:\tmov al,24h\n\tmov ds:[di],al\n\tinc di\n\tloop _p_lp_2\n\tret\ncode ends\nend start"
 )

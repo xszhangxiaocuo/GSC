@@ -158,10 +158,10 @@ func (handler *MenuHandler) TargetHandler(input *widget.Entry, output *widget.En
 			dialog.ShowInformation("目标代码生成", "请先运行通过语义分析！", window)
 			return
 		}
-		handler.Target = compiler.NewTarget(handler.QuaForm)
+		handler.Target = compiler.NewTarget(handler.QuaForm, handler.Analyser.SymbolTable)
 		handler.Target.GenerateAsmCode()
 		//TODO: 输出汇编代码
-		result := handler.Analyser.SymbolTable.String() + "\n\n" + handler.Analyser.Qf.PrintQuaFormList()
+		result := handler.Target.Asm.String()
 		output.SetText(result)
 
 		errs := len(handler.Analyser.Logger.Errs)

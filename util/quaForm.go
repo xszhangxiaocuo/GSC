@@ -111,7 +111,7 @@ func (q *QuaFormList) GetTemp() string {
 	defer func() {
 		q.Count++
 	}()
-	return fmt.Sprintf("T%d", q.Count)
+	return fmt.Sprintf("$T%d", q.Count)
 }
 
 // GetQuaFormList 获取四元式列表

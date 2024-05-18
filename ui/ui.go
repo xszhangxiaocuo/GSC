@@ -118,9 +118,8 @@ func InitApp() {
 
 	//TODO：完善目标代码菜单选项函数
 	targetcodeMenu := fyne.NewMenu("目标代码",
-		fyne.NewMenuItem("目标代码生成", func() {
-			println("目标代码生成被点击了")
-		}))
+		fyne.NewMenuItem("目标代码生成器", menuHandler.TargetHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
+	)
 
 	// 创建顶部菜单栏
 	mainMenu := fyne.NewMainMenu(

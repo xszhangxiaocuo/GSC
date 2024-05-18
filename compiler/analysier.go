@@ -16,14 +16,16 @@ type Param struct {
 
 // Info 符号表信息
 type Info struct {
-	Scope    string   //作用域范围的函数名
-	Name     string   //变量名
-	Type     string   //变量类型
-	Value    any      //变量值
-	Level    int      //变量作用域,0表示为全局
-	Pars     []string //如果是函数，需要参数列表
-	initFlag bool     //标记当前info的value是否已经初始化
-	funcFlag bool     //标记函数是否已经定义
+	Scope     string   //作用域范围的函数名
+	Name      string   //变量名
+	Type      string   //变量类型
+	Value     any      //变量值
+	Level     int      //变量作用域,0表示为全局
+	Pars      []string //如果是函数，需要参数列表
+	ParsName  []string //参数名
+	initFlag  bool     //标记当前info的value是否已经初始化
+	funcFlag  bool     //标记函数是否已经定义
+	ParamFlag bool     //标记是否是形参
 }
 
 func (i *Info) Copy() *Info {
@@ -213,15 +215,16 @@ func (a *Analyser) addVarTable() {
 			a.Logger.AddErr("\t\t\t\t\t\t变量：" + a.info.Name + " 重复定义\n")
 			return
 		}
-		if !a.info.initFlag {
-			if a.isSameType(consts.TokenMap[a.info.Type], consts.TokenMap["int"]) {
-				a.info.Value = 0
-			} else if a.isSameType(consts.TokenMap[a.info.Type], consts.TokenMap["float"]) {
-				a.info.Value = 0.0
-			} else if a.isSameType(consts.TokenMap[a.info.Type], consts.TokenMap["char"]) {
-				a.info.Value = ' '
-			}
-		}
+		//TODO: 变量初始化?
+		//if !a.info.initFlag {
+		//	if a.isSameType(consts.TokenMap[a.info.Type], consts.TokenMap["int"]) {
+		//		a.info.Value = 0
+		//	} else if a.isSameType(consts.TokenMap[a.info.Type], consts.TokenMap["float"]) {
+		//		a.info.Value = 0.0
+		//	} else if a.isSameType(consts.TokenMap[a.info.Type], consts.TokenMap["char"]) {
+		//		a.info.Value = ' '
+		//	}
+		//}
 		a.info.Scope = a.Scope
 		a.info.Level = a.Level
 		a.SymbolTable.AddVariable(a.info)
@@ -387,12 +390,14 @@ func (a *Analyser) checkFuncParamList(funcName string) {
 		}
 
 		a.SymbolTable.AddVariable(&Info{
-			Scope: a.Scope,
-			Level: a.info.Level,
-			Name:  name,
-			Type:  t,
-			Value: a.info.Value,
+			Scope:     a.Scope,
+			Level:     a.info.Level + 1,
+			Name:      name,
+			Type:      t,
+			Value:     a.info.Value,
+			ParamFlag: true, // 标记为形参
 		})
+		v.ParsName = append(v.ParsName, name)
 	}
 }
 
@@ -461,14 +466,15 @@ func (a *Analyser) initInfo() {
 }
 
 func (a *Analyser) initValue() {
-	switch a.info.Type {
-	case "int":
-		a.info.Value = "0"
-	case "float":
-		a.info.Value = "0.0"
-	case "char":
-		a.info.Value = "' '"
-	}
+	//TODO: 变量初始化?
+	//switch a.info.Type {
+	//case "int":
+	//	a.info.Value = "0"
+	//case "float":
+	//	a.info.Value = "0.0"
+	//case "char":
+	//	a.info.Value = "' '"
+	//}
 	a.info.initFlag = true
 }
 
@@ -641,11 +647,12 @@ func (a *Analyser) analyseDeclarationConstTable1(node *util.TreeNode, next int) 
 	switch child.Value {
 	case ";":
 		if !a.err {
-			if !a.info.initFlag {
-				a.initValue()
-				a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
-				a.calStacks.PushNum(a.info.Value)
-			}
+			//TODO: 变量初始化?
+			//if !a.info.initFlag {
+			//	a.initValue()
+			//	a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
+			//	a.calStacks.PushNum(a.info.Value)
+			//}
 			a.clearCalStacks()
 			a.addConstTable()
 		}
@@ -655,11 +662,12 @@ func (a *Analyser) analyseDeclarationConstTable1(node *util.TreeNode, next int) 
 	case ",":
 		info := a.info.Copy()
 		if !a.err {
-			if !a.info.initFlag {
-				a.initValue()
-				a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
-				a.calStacks.PushNum(a.info.Value)
-			}
+			//TODO: 变量初始化?
+			//if !a.info.initFlag {
+			//	a.initValue()
+			//	a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
+			//	a.calStacks.PushNum(a.info.Value)
+			//}
 			a.clearCalStacks()
 			a.addConstTable()
 		}
@@ -802,11 +810,12 @@ func (a *Analyser) analyseDeclarationVarTable0(node *util.TreeNode, next int) {
 	switch child.Value {
 	case ";":
 		if !a.err {
-			if !a.info.initFlag {
-				a.initValue()
-				a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
-				a.calStacks.PushNum(a.info.Value)
-			}
+			//TODO: 变量初始化?
+			//if !a.info.initFlag {
+			//	a.initValue()
+			//	a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
+			//	a.calStacks.PushNum(a.info.Value)
+			//}
 			a.clearCalStacks()
 			a.addVarTable()
 		}
@@ -816,11 +825,12 @@ func (a *Analyser) analyseDeclarationVarTable0(node *util.TreeNode, next int) {
 	case ",":
 		info := a.info.Copy()
 		if !a.err {
-			if !a.info.initFlag {
-				a.initValue()
-				a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
-				a.calStacks.PushNum(a.info.Value)
-			}
+			// TODO: 变量初始化?
+			//if !a.info.initFlag {
+			//	a.initValue()
+			//	a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
+			//	a.calStacks.PushNum(a.info.Value)
+			//}
 			a.clearCalStacks()
 			a.addVarTable()
 		}
@@ -1455,7 +1465,8 @@ func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
 		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
 	case ")":
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		a.calStacks.CurrentStack.OpStack.Pop() // 弹出move操作
 		//分析完if的判断条件后，需要回填真出口
 		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
 		a.Qf.IfFlag = false
@@ -1966,7 +1977,7 @@ func (a *Analyser) analyseFunctionDefine(node *util.TreeNode, next int) {
 			a.Qf.AddQuaForm(a.info.Name, nil, nil, nil)
 			info, _ := a.SymbolTable.FindFunction(a.info.Name)
 			a.Scope = a.info.Name
-			a.info.Level = a.Level + 1
+			a.info.Scope = a.Scope
 			if info.Type != a.info.Type {
 				a.Logger.AddAnalyseErr(child.Children[0].Token, "函数返回类型不匹配")
 				a.err = true
@@ -1981,7 +1992,6 @@ func (a *Analyser) analyseFunctionDefine(node *util.TreeNode, next int) {
 				Type: a.info.Type,
 			})
 		}
-
 		a.checkFuncParamList(a.currentFunc) //检查函数参数类型是否匹配，并加入符号表
 	case consts.FUNCTION_PARAMS_DEF:
 		//参数为空
