@@ -1234,7 +1234,7 @@ func (a *Analyser) analyseDeclFormalParam(node *util.TreeNode, next int) {
 	switch child.Value {
 	case consts.VARIABLE_TYPE:
 		a.info.Pars = append(a.info.Pars, child.Children[0].Value)
-		a.info.Type = child.Children[0].Value
+		//a.info.Type = child.Children[0].Value
 	case consts.FUNCTION_PARAM_0:
 		a.analyseDeclFormalParam0(child, 0)
 	}

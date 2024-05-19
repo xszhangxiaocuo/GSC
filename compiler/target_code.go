@@ -194,7 +194,7 @@ func (t *Target) setFuncParamAddr(param any) {
 		return
 	}
 	if _, ok = t.getFuncParamAddr(p); !ok && !t.isGlobalVar(p) { // 查询不到参数地址并且不是全局变量
-		if t.SymbolTable.VarTable[p] != nil && t.SymbolTable.VarTable[t.CurrentFunc][p].ParamFlag { // 是函数形参
+		if t.SymbolTable.VarTable[t.CurrentFunc][p] != nil && t.SymbolTable.VarTable[t.CurrentFunc][p].ParamFlag { // 是函数形参
 			t.FuncParamLen += 2
 			t.FuncMap[t.CurrentFunc][p] = fmt.Sprintf("ss:[bp+%d]", 4+t.FuncParamNum*2) // 函数形参地址, 从bp+4开始,bp+2为返回地址,bp+0为bp
 			t.FuncParamNum++
