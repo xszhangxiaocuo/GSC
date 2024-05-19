@@ -119,8 +119,8 @@ func (t *Target) GenerateAsmCode() {
 			t.Asm.WriteString(fmt.Sprintf("_%d:\tMOV DX,0\n\tMOV AX,%s\n\tCMP AX,0\n\tJE _AND_%d\n\tMOV AX,%s\n\tCMP AX,0\n\tJE _AND_%d\n\tMOV DX,1\n_AND_%d:\tMOV %s,DX\n", i, t.DataAdress(arg1), i, t.DataAdress(arg2), i, i, t.DataAdress(result)))
 		case "||":
 			t.Asm.WriteString(fmt.Sprintf("_%d:\tMOV DX,1\n\tMOV AX,%s\n\tCMP AX,0\n\tJNE _OR_%d\n\tMOV AX,%s\n\tCMP AX,0\n\tJNE _OR_%d\n\tMOV DX,0\n_OR_%d:\tMOV %s,DX\n", i, t.DataAdress(arg1), i, t.DataAdress(arg2), i, i, t.DataAdress(result)))
-		//case "!":
-		//	t.Asm.WriteString(fmt.Sprintf("_%d:\t%sMOV DX,1\n\tMOV AX,%s\n\tCMP AX,0\n\tJE _NOT_%d\n\t%sMOV DX,0\n_NOT_%d:\tMOV %s,DX\n", i, t.DataAdress(funName, two1), arg1, i, t.DataAdress(funName, four1), i, result))
+		case "!":
+			t.Asm.WriteString(fmt.Sprintf("_%d:\tMOV DX,1\n\tMOV AX,%s\n\tCMP AX,0\n\tJE _NOT_%d\n\tMOV DX,0\n_NOT_%d:\tMOV %s,DX\n", i, t.DataAdress(arg1), i, i, t.DataAdress(result)))
 		case "jmp":
 			jmp := "_" + strconv.Itoa(result.(int))
 			// 跳转的位置为程序结束时，跳转到退出程序的位置
