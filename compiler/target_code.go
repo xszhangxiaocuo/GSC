@@ -41,19 +41,24 @@ func (t *Target) GenerateAsmCode() {
 	t.Asm.WriteString(consts.ASM_HEAD)
 
 	// 生成全局变量
-	for name, info := range t.SymbolTable.VarTable {
-		if info.Scope != consts.ALL && info.Scope != "main" {
+	for funcName, table := range t.SymbolTable.VarTable {
+		if funcName != consts.ALL && funcName != "main" {
 			continue
 		}
-		t.Asm.WriteString(fmt.Sprintf("\t_%s dw 0\n", name))
+		for name, _ := range table {
+			t.Asm.WriteString(fmt.Sprintf("\t_%s dw 0\n", name))
+		}
+
 	}
 
 	// 生成全局常量
-	for name, info := range t.SymbolTable.ConstTable {
-		if info.Scope != consts.ALL && info.Scope != "main" {
+	for funcName, table := range t.SymbolTable.ConstTable {
+		if funcName != consts.ALL && funcName != "main" {
 			continue
 		}
-		t.Asm.WriteString(fmt.Sprintf("\t_%s dw %s\n", name, info.Value))
+		for name, info := range table {
+			t.Asm.WriteString(fmt.Sprintf("\t_%s dw %s\n", name, info.Value))
+		}
 	}
 
 	// 生成汇编代码入口
@@ -189,7 +194,7 @@ func (t *Target) setFuncParamAddr(param any) {
 		return
 	}
 	if _, ok = t.getFuncParamAddr(p); !ok && !t.isGlobalVar(p) { // 查询不到参数地址并且不是全局变量
-		if t.SymbolTable.VarTable[p] != nil && t.SymbolTable.VarTable[p].ParamFlag { // 是函数形参
+		if t.SymbolTable.VarTable[p] != nil && t.SymbolTable.VarTable[t.CurrentFunc][p].ParamFlag { // 是函数形参
 			t.FuncParamLen += 2
 			t.FuncMap[t.CurrentFunc][p] = fmt.Sprintf("ss:[bp+%d]", 4+t.FuncParamNum*2) // 函数形参地址, 从bp+4开始,bp+2为返回地址,bp+0为bp
 			t.FuncParamNum++
@@ -233,11 +238,11 @@ func (t *Target) getFuncParamLen() {
 
 // isGlobalVar 判断是否为全局变量或全局常量
 func (t *Target) isGlobalVar(varName string) bool {
-	if info, ok := t.SymbolTable.VarTable[varName]; ok {
+	if info, ok := t.SymbolTable.VarTable[consts.ALL][varName]; ok {
 		if info.Scope == consts.ALL {
 			return true
 		}
-	} else if info, ok = t.SymbolTable.ConstTable[varName]; ok {
+	} else if info, ok = t.SymbolTable.ConstTable[consts.ALL][varName]; ok {
 		if info.Scope == consts.ALL {
 			return true
 		}

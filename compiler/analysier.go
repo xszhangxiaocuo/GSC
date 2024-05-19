@@ -52,20 +52,24 @@ func (i *Info) String() string {
 
 // SymbolTable 符号表
 type SymbolTable struct {
-	VarTable   map[string]*Info //变量表
-	ConstTable map[string]*Info //常量表
-	FuncTable  map[string]*Info //函数表
+	VarTable   map[string]map[string]*Info //变量表
+	ConstTable map[string]map[string]*Info //常量表
+	FuncTable  map[string]*Info            //函数表
 }
 
 // String 返回符号表的字符串形式
 func (s *SymbolTable) String() string {
 	str := "变量表: \n作用域\t作用域等级\t\t变量名\t变量类型\t变量值\n"
-	for _, v := range s.VarTable {
-		str += v.String() + "\n"
+	for _, table := range s.VarTable {
+		for _, v := range table {
+			str += v.String() + "\n"
+		}
 	}
 	str += "\n\n常量表: \n作用域\t作用域等级\t\t常量名\t常量类型\t常量值\n"
-	for _, v := range s.ConstTable {
-		str += v.String() + "\n"
+	for _, table := range s.ConstTable {
+		for _, v := range table {
+			str += v.String() + "\n"
+		}
 	}
 	str += "\n\n函数表: \n作用域\t作用域等级\t\t函数名\t函数类型\t函数值\t参数列表\n"
 	for _, v := range s.FuncTable {
@@ -78,8 +82,8 @@ func (s *SymbolTable) String() string {
 // NewSymbolTable 创建符号表
 func NewSymbolTable() *SymbolTable {
 	return &SymbolTable{
-		VarTable:   make(map[string]*Info),
-		ConstTable: make(map[string]*Info),
+		VarTable:   make(map[string]map[string]*Info),
+		ConstTable: make(map[string]map[string]*Info),
 		FuncTable:  make(map[string]*Info),
 	}
 
@@ -87,34 +91,32 @@ func NewSymbolTable() *SymbolTable {
 
 // AddVariable 添加变量
 func (s *SymbolTable) AddVariable(info *Info) {
-	s.VarTable[info.Name] = info
+	s.VarTable[info.Scope][info.Name] = info
 }
 
 // FindVariable 查找变量
-func (s *SymbolTable) FindVariable(name string) (*Info, bool) {
-	info, found := s.VarTable[name]
+func (s *SymbolTable) FindVariable(scope string, name string) (*Info, bool) {
+	info, found := s.VarTable[scope][name]
+	if !found { //如果在当前作用域找不到变量，就在全局作用域找
+		scope = consts.ALL
+		info, found = s.VarTable[scope][name]
+	}
 	return info, found
-}
-
-// RemoveVariable 移除变量
-func (s *SymbolTable) RemoveVariable(name string) {
-	delete(s.VarTable, name)
 }
 
 // AddConstant 添加常量
 func (s *SymbolTable) AddConstant(info *Info) {
-	s.ConstTable[info.Name] = info
+	s.ConstTable[info.Scope][info.Name] = info
 }
 
 // FindConstant 查找常量
-func (s *SymbolTable) FindConstant(name string) (*Info, bool) {
-	info, found := s.ConstTable[name]
+func (s *SymbolTable) FindConstant(scope string, name string) (*Info, bool) {
+	info, found := s.ConstTable[scope][name]
+	if !found { //如果在当前作用域找不到常量，就在全局作用域找
+		scope = consts.ALL
+		info, found = s.ConstTable[scope][name]
+	}
 	return info, found
-}
-
-// RemoveConstant 移除常量
-func (s *SymbolTable) RemoveConstant(name string) {
-	delete(s.ConstTable, name)
 }
 
 // AddFunction 添加函数
@@ -126,11 +128,6 @@ func (s *SymbolTable) AddFunction(info *Info) {
 func (s *SymbolTable) FindFunction(name string) (*Info, bool) {
 	info, found := s.FuncTable[name]
 	return info, found
-}
-
-// RemoveFunction 移除函数
-func (s *SymbolTable) RemoveFunction(name string) {
-	delete(s.FuncTable, name)
 }
 
 // Analyser 语义分析器
@@ -145,6 +142,8 @@ type Analyser struct {
 	flag          bool              //标记当前传递的info信息是否已经完整
 	err           bool              //标记是否出现错误
 	paramFlag     bool              //标记是否有参数
+	divFlag       bool              //标记是否有除法
+	divToken      *util.TokenNode   //除法的token
 	node          *util.TreeNode    //当前节点
 	Qf            *util.QuaFormList //四元式列表
 	CurrentJmpPos *util.ForJmpPos   //当前循环的条件判断位置
@@ -242,7 +241,7 @@ func (a *Analyser) changeVarTable() {
 			a.Logger.AddErr("\t\t\t\t\t\t变量：" + a.info.Name + " 未定义\n")
 			return
 		}
-		info := a.SymbolTable.VarTable[a.info.Name].Copy()
+		info := a.SymbolTable.VarTable[a.Scope][a.info.Name].Copy()
 		if info.Name != a.info.Value {
 			info.Value = a.info.Value
 			a.SymbolTable.AddVariable(info)
@@ -288,9 +287,9 @@ func (a *Analyser) checkVar(node *util.TreeNode) bool {
 	//
 	var v *Info
 	if a.varIsExist(node.Value) {
-		v, _ = a.SymbolTable.FindVariable(node.Value)
+		v, _ = a.SymbolTable.FindVariable(a.Scope, node.Value)
 	} else if a.constIsExist(node.Value) {
-		v, _ = a.SymbolTable.FindConstant(node.Value)
+		v, _ = a.SymbolTable.FindConstant(a.Scope, node.Value)
 	} else {
 		a.Logger.AddAnalyseErr(node.Token, "变量类型未知")
 		return false
@@ -372,7 +371,6 @@ func (a *Analyser) checkFuncParamList(funcName string) {
 		return
 	}
 	v, _ := a.SymbolTable.FindFunction(funcName)
-	fmt.Println(len(v.Pars), len(a.params))
 	if len(v.Pars) != len(a.params) {
 		a.Logger.AddErr("\t\t\t\t\t\t函数：" + funcName + " 参数个数不匹配\n")
 		return
@@ -411,7 +409,7 @@ func (a *Analyser) isExist(name string) bool {
 
 // varIsExist 检查变量是否存在
 func (a *Analyser) varIsExist(name string) bool {
-	if _, ok := a.SymbolTable.FindVariable(name); ok {
+	if _, ok := a.SymbolTable.FindVariable(a.Scope, name); ok {
 		return true
 	}
 	return false
@@ -419,7 +417,7 @@ func (a *Analyser) varIsExist(name string) bool {
 
 // constIsExist 检查常量是否存在
 func (a *Analyser) constIsExist(name string) bool {
-	if _, ok := a.SymbolTable.FindConstant(name); ok {
+	if _, ok := a.SymbolTable.FindConstant(a.Scope, name); ok {
 		return true
 	}
 	return false
@@ -490,10 +488,13 @@ func (a *Analyser) clearCalStacks() {
 
 // StartAnalyse 开始语义分析
 func (a *Analyser) StartAnalyse() {
+	// 初始化全局作用域
+	a.SymbolTable.VarTable[consts.ALL] = make(map[string]*Info)
+	a.SymbolTable.ConstTable[consts.ALL] = make(map[string]*Info)
 	a.analyse(a.Ast, 0)
 }
 
-// analyse 递归遍历语法树进行语义分析 TODO: 未完成
+// analyse 递归遍历语法树进行语义分析
 func (a *Analyser) analyse(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return
@@ -509,6 +510,9 @@ func (a *Analyser) analyse(node *util.TreeNode, next int) {
 		a.info.Level = a.Level
 		a.analyseDeclarationStatement(child, 0)
 	case "main":
+		// 初始化main函数作用域
+		a.SymbolTable.VarTable["main"] = make(map[string]*Info)
+		a.SymbolTable.ConstTable["main"] = make(map[string]*Info)
 		//添加main函数
 		a.Qf.AddQuaForm("main", nil, nil, nil)
 		a.SymbolTable.AddFunction(&Info{
@@ -702,7 +706,7 @@ func (a *Analyser) analyseDeclarationConstTableValue(node *util.TreeNode, next i
 	case consts.VARIABLE:
 		//检查变量是否存在，类型是否匹配
 		if a.checkVar(child.Children[0]) {
-			v, _ := a.SymbolTable.FindVariable(child.Children[0].Value)
+			v, _ := a.SymbolTable.FindVariable(a.Scope, child.Children[0].Value)
 			a.info.Value = v.Value            //取出变量值
 			a.calStacks.PushNum(a.info.Value) //变量值入栈
 		} else {
@@ -1040,11 +1044,23 @@ func (a *Analyser) analyseItem0(node *util.TreeNode, next int) {
 	case "*":
 		a.calStacks.PushOpe(consts.QUA_MUL)
 	case "/":
+		a.divFlag = true
+		a.divToken = child.Token
 		a.calStacks.PushOpe(consts.QUA_DIV)
 	case "%":
 		a.calStacks.PushOpe(consts.QUA_MOD)
 	case consts.FACTOR:
 		a.analyseFactor(child, 0)
+		if a.divFlag {
+			a.divFlag = false
+			if a.calStacks.CurrentStack.NumStack.Top() == "0" || a.calStacks.CurrentStack.NumStack.Top() == "0.0" {
+				a.Logger.AddAnalyseErr(a.divToken, "除数不能为0")
+			} else if info, ok := a.SymbolTable.FindVariable(a.Scope, a.calStacks.CurrentStack.NumStack.Top().(string)); ok && info.Value == "0" {
+				a.Logger.AddAnalyseErr(a.divToken, "除数不能为0")
+			} else if info, ok = a.SymbolTable.FindConstant(a.Scope, a.calStacks.CurrentStack.NumStack.Top().(string)); ok && info.Value == "0" {
+				a.Logger.AddAnalyseErr(a.divToken, "除数不能为0")
+			}
+		}
 	case consts.TERM_0:
 		a.analyseItem0(child, 0)
 	}
@@ -1156,6 +1172,8 @@ func (a *Analyser) analyseDeclarationFunctionStatement(node *util.TreeNode, next
 	switch child.Value {
 	case ";":
 		if !a.err {
+			// 初始化函数作用域
+			a.SymbolTable.VarTable[a.info.Name] = make(map[string]*Info)
 			a.addFuncTable()
 		}
 		a.err = false

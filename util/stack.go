@@ -536,7 +536,7 @@ func (c *CalStacks) CalIf() {
 
 func (c *CalStacks) CalAll() {
 	c.CurrentStack.CalAll()
-	c.CurrentStack.Result = c.CurrentStack.NumStack.Top()
+	//c.CurrentStack.Result = c.CurrentStack.NumStack.Top()
 	c.Result = c.CurrentStack.Result
 }
 
