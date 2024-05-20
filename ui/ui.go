@@ -18,7 +18,7 @@ var MainWindow fyne.Window
 
 func InitApp() {
 	MyApp = app.New()
-	MainWindow = MyApp.NewWindow("😋Go Sample Compiler")
+	MainWindow = MyApp.NewWindow("Go Sample Compiler")
 	MainWindow.Resize(fyne.NewSize(800, 600)) // 设置窗口的固定大小
 
 	// 设置默认字体
@@ -38,16 +38,15 @@ func InitApp() {
 	bottomScroll := container.NewScroll(bottomOutput)
 	bottomScroll.SetMinSize(fyne.NewSize(0, 300)) // 设置底部滚动容器的最小高度
 
-	// 创建一个网格容器，用于放置左侧和右侧输入框
-	grid := container.NewGridWithColumns(2,
-		container.NewScroll(leftInput),
-		container.NewScroll(rightOutput),
-	)
+	// 将两个输入框左右布局
+	rightContainer := container.NewHSplit(leftInput, rightOutput)
+	rightContainer.Offset = 0.5 // 设置上下布局的初始分割比例
 
-	// 创建一个边界容器，用于组织整个布局
-	content := container.NewBorder(nil, bottomScroll, nil, nil, grid)
+	// 将底部的输入框和上边的容器上下布局
+	splitContainer := container.NewVSplit(rightContainer, bottomOutput)
+	splitContainer.Offset = 0.5 // 设置左右布局的初始分割比例
 
-	MainWindow.SetContent(content)
+	MainWindow.SetContent(splitContainer)
 
 	// 创建菜单项
 	fileMenu := fyne.NewMenu("文件",
@@ -110,15 +109,18 @@ func InitApp() {
 		fyne.NewMenuItem("语义分析器", menuHandler.AnalysierHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
 	)
 
-	//TODO：完善中间代码菜单选项函数
 	IRcodeMenu := fyne.NewMenu("中间代码",
 		fyne.NewMenuItem("中间代码生成", func() {
 			println("中间代码生成被点击了")
 		}))
 
-	//TODO：完善目标代码菜单选项函数
 	targetcodeMenu := fyne.NewMenu("目标代码",
 		fyne.NewMenuItem("目标代码生成器", menuHandler.TargetHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
+	)
+
+	//TODO：完善相关算法菜单选项函数
+	algorithmMenu := fyne.NewMenu("DAG优化",
+		fyne.NewMenuItem("DAG优化", menuHandler.AlgorithmHandler(MyApp, leftInput, rightOutput, bottomOutput, MainWindow)),
 	)
 
 	// 创建顶部菜单栏
@@ -130,6 +132,7 @@ func InitApp() {
 		analysierMenu,
 		IRcodeMenu,
 		targetcodeMenu,
+		algorithmMenu,
 	)
 	MainWindow.SetMainMenu(mainMenu)
 

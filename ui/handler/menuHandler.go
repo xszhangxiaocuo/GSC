@@ -7,6 +7,7 @@ import (
 	"complier/util"
 	"fmt"
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"log"
@@ -160,7 +161,6 @@ func (handler *MenuHandler) TargetHandler(input *widget.Entry, output *widget.En
 		}
 		handler.Target = compiler.NewTarget(handler.QuaForm, handler.Analyser.SymbolTable)
 		handler.Target.GenerateAsmCode()
-		//TODO: 输出汇编代码
 		result := handler.Target.Asm.String()
 		output.SetText(result)
 
@@ -173,9 +173,72 @@ func (handler *MenuHandler) TargetHandler(input *widget.Entry, output *widget.En
 				msg += err
 			}
 		}
-
+		msg += "\n\n" + handler.Analyser.Qf.PrintQuaFormList()
 		bottomOutput.SetText(msg)
 		handler.LexerFlag = false
 		handler.ParserFlag = false
+	}
+}
+
+func (handler *MenuHandler) AlgorithmHandler(myApp fyne.App, input *widget.Entry, output *widget.Entry, bottomOutput *widget.Entry, window fyne.Window) func() {
+	return func() {
+		mainWindow := myApp.NewWindow("DAG Window")
+
+		// 创建左边的输入框
+		leftEntry := widget.NewEntry()
+		leftEntry.SetPlaceHolder("Left Entry")
+
+		// 创建右边的两个输入框
+		topRightEntry := widget.NewEntry()
+		topRightEntry.SetPlaceHolder("Top Right Entry")
+		bottomRightEntry := widget.NewEntry()
+		bottomRightEntry.SetPlaceHolder("Bottom Right Entry")
+
+		dagOptimizeButton := widget.NewButton("DAG优化", func() {
+			//  TODO：调用 DAG 优化函数
+			dag := compiler.NewDAG(nil)
+			//  1. 从左边的输入框中获取输入的四元式代码
+			inputQf := leftEntry.Text
+			//  2. 调用 DAG 优化函数，传入四元式代码
+			dag.StartDAG(inputQf)
+			//  3. 将优化后的四元式代码分别显示在右边的两个输入框中
+			topRightEntry.SetText(dag.PrintBasicBlocks())
+			//  4. 显示一个通知，表示优化已完成
+			//  5. 将优化后的四元式代码保存到文件中
+			//  6. 将优化后的四元式代码绘制成 DAG 图片
+			//  7. 显示一个通知，表示图片已保存
+			//  8. 将优化后的四元式代码绘制成 DAG 图片显示在窗口中
+			//  9. 显示一个通知，表示图片已显示
+			//  10. 将优化后的四元式代码绘制成 DAG 图片保存到文件中
+			//  11. 显示一个通知，表示图片已保存
+
+			// 显示一个通知，表示优化已完成
+			fyne.CurrentApp().SendNotification(&fyne.Notification{
+				Title:   "DAG优化",
+				Content: "DAG优化已完成",
+			})
+		})
+
+		openFileButton := widget.NewButton("打开文件", func() {
+			leftEntry.SetText(string(util.ReadFile(util.OpenFIle())))
+		})
+
+		// 将右边的两个输入框上下布局
+		rightContainer := container.NewVSplit(topRightEntry, bottomRightEntry)
+		rightContainer.Offset = 0.5 // 设置上下布局的初始分割比例
+
+		// 将左边的输入框和右边的容器左右布局
+		splitContainer := container.NewHSplit(leftEntry, rightContainer)
+		splitContainer.Offset = 0.5 // 设置左右布局的初始分割比例
+
+		// 创建包含输入框和按钮的主容器
+		mainContainer := container.NewBorder(openFileButton, dagOptimizeButton, nil, nil, splitContainer)
+
+		// 设置主窗口内容
+		mainWindow.SetContent(mainContainer)
+
+		// 设置主窗口尺寸并显示
+		mainWindow.Resize(fyne.NewSize(600, 400))
+		mainWindow.Show()
 	}
 }

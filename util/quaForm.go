@@ -13,6 +13,18 @@ type QuaForm struct {
 	Result any
 }
 
+// NewQuaForm 创建四元式
+func NewQuaForm(id int, op, arg1, arg2, result any) *QuaForm {
+	return &QuaForm{
+		Id:     id,
+		Op:     op,
+		Arg1:   arg1,
+		Arg2:   arg2,
+		Result: result,
+	}
+
+}
+
 // ForJmpPos 记录循环的条件判断位置，以及第二个赋值表达式位置
 type ForJmpPos struct {
 	ConditionPos int //条件判断位置
@@ -138,34 +150,32 @@ func (q *QuaFormList) PrintQuaFormList() string {
 		arg1, ok := qf.Arg1.(string)
 		if ok {
 			str += fmt.Sprintf("%s\t\t", arg1)
+		} else if qf.Arg1 == nil {
+			str += fmt.Sprintf("<nil>\t\t")
+		} else if num, ok := qf.Arg1.(int); ok {
+			str += fmt.Sprintf("%d\t\t", num)
 		} else {
-			if qf.Arg1 == nil {
-				str += fmt.Sprintf("<nil>\t\t")
-			} else {
-				str += fmt.Sprintf("%c\t\t", qf.Arg1)
-			}
+			str += fmt.Sprintf("%c\t\t", qf.Arg1)
 		}
 		arg2, ok := qf.Arg2.(string)
 		if ok {
 			str += fmt.Sprintf("%s\t\t", arg2)
+		} else if qf.Arg2 == nil {
+			str += fmt.Sprintf("<nil>\t\t")
+		} else if num, ok := qf.Arg2.(int); ok {
+			str += fmt.Sprintf("%d\t\t", num)
 		} else {
-			if qf.Arg2 == nil {
-				str += fmt.Sprintf("<nil>\t\t")
-			} else {
-				str += fmt.Sprintf("%c\t\t", qf.Arg2)
-			}
+			str += fmt.Sprintf("%c\t\t", qf.Arg2)
 		}
 		result, ok := qf.Result.(string)
 		if ok {
 			str += fmt.Sprintf("%s\n", result)
+		} else if result, ok := qf.Result.(int); ok {
+			str += fmt.Sprintf("%d\n", result)
+		} else if qf.Result == nil {
+			str += fmt.Sprintf("<nil>\n")
 		} else {
-			if result, ok := qf.Result.(int); ok {
-				str += fmt.Sprintf("%d\n", result)
-			} else if qf.Result == nil {
-				str += fmt.Sprintf("<nil>\n")
-			} else {
-				str += fmt.Sprintf("%c\n", qf.Result)
-			}
+			str += fmt.Sprintf("%c\n", qf.Result)
 		}
 	}
 	return str

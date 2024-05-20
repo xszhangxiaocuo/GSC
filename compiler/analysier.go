@@ -1741,7 +1741,6 @@ func (a *Analyser) analyseReturn(node *util.TreeNode, next int) {
 	child := node.Children[next]
 	switch child.Value {
 	case "return":
-		a.calStacks.CurrentStack.OpStack.Push(consts.QUA_RETURN)
 	case consts.RETURN_STMT_0:
 		a.analyseReturn0(child, 0)
 	}
@@ -1749,7 +1748,7 @@ func (a *Analyser) analyseReturn(node *util.TreeNode, next int) {
 	a.analyseReturn(node, next+1)
 }
 
-// analyseReturn0 分析return0语句 TODO:这里有问题，需要修改
+// analyseReturn0 分析return0语句
 func (a *Analyser) analyseReturn0(node *util.TreeNode, next int) {
 	if next >= len(node.Children) || !isLegalNode(node) {
 		return
@@ -1767,6 +1766,7 @@ func (a *Analyser) analyseReturn0(node *util.TreeNode, next int) {
 			a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_RETURN], nil, nil, a.calStacks.Result)
 		}
 	case consts.BOOLEAN_EXPR:
+		a.calStacks.CurrentStack.OpStack.Push(consts.QUA_RETURN)
 		a.analyseBoolExp(child, 0)
 	}
 	a.infoFlag()
