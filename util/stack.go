@@ -260,6 +260,11 @@ func (c *CalStack) Cal() {
 		return
 	}
 
+	if op == consts.QUA_RETURN {
+		c.Result = num2
+		return
+	}
+
 	num1 := c.NumStack.Pop()
 	// 遇到赋值运算符，num1为变量，num2为值
 	if op == consts.QUA_ASSIGNMENT {
@@ -438,6 +443,14 @@ func (c *CalStack) CalAllUtilCall() {
 	c.Cal()
 }
 
+// CalAllUtilReturn 计算直到return用符出栈
+func (c *CalStack) CalAllUtilReturn() {
+	for c.OpStack.Top() != consts.QUA_RETURN {
+		c.Cal()
+	}
+	c.Cal()
+}
+
 func (c *CalStack) Clear() {
 	c.NumStack = NewStack()
 	c.OpStack = NewStack()
@@ -542,6 +555,11 @@ func (c *CalStacks) CalAll() {
 
 func (c *CalStacks) CalAllUtilCall() {
 	c.CurrentStack.CalAllUtilCall()
+}
+
+func (c *CalStacks) CalAllUtilReturn() {
+	c.CurrentStack.CalAllUtilReturn()
+	c.Result = c.CurrentStack.Result
 }
 
 func (c *CalStacks) Clear() {

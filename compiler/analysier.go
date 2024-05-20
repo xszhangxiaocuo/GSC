@@ -1741,6 +1741,7 @@ func (a *Analyser) analyseReturn(node *util.TreeNode, next int) {
 	child := node.Children[next]
 	switch child.Value {
 	case "return":
+		a.calStacks.CurrentStack.OpStack.Push(consts.QUA_RETURN)
 	case consts.RETURN_STMT_0:
 		a.analyseReturn0(child, 0)
 	}
@@ -1762,8 +1763,8 @@ func (a *Analyser) analyseReturn0(node *util.TreeNode, next int) {
 		if next == 0 {
 			a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_RETURN], nil, nil, nil)
 		} else {
-			a.clearCalStacks()
-			a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_RETURN], nil, nil, a.info.Value)
+			a.calStacks.CalAllUtilReturn()
+			a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_RETURN], nil, nil, a.calStacks.Result)
 		}
 	case consts.BOOLEAN_EXPR:
 		a.analyseBoolExp(child, 0)
