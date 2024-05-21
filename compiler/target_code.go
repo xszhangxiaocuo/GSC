@@ -230,7 +230,9 @@ func (t *Target) getFuncParamLen() {
 		if t.isFuncDef(form.Op) {
 			break
 		}
-		t.setFuncParamAddr(form.Arg1)
+		if form.Op != consts.QuaFormMap[consts.QUA_CALL] { // 函数调用第一个参数为函数名，不需要分配地址
+			t.setFuncParamAddr(form.Arg1)
+		}
 		t.setFuncParamAddr(form.Arg2)
 		t.setFuncParamAddr(form.Result)
 	}
