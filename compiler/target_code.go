@@ -157,7 +157,7 @@ func (t *Target) GenerateAsmCode() {
 			}
 		case "sys":
 			t.Asm.WriteString("quit:\tMOV AH,4Ch\n\tINT 21h\n")
-		default: // 函数定义 TODO: 处理函数定义
+		default: // 函数定义
 			t.CurrentFunc = op.(string)
 			t.CurrentId = i + 1
 			t.getFuncParamLen()
@@ -252,7 +252,7 @@ func (t *Target) isGlobalVar(varName string) bool {
 	return false
 }
 
-// DataAdress 获取参数地址 TODO: 处理函数参数
+// DataAdress 获取参数地址
 func (t *Target) DataAdress(arg any) string {
 	param := arg.(string)
 	p := ""
@@ -276,15 +276,6 @@ func (t *Target) DataAdress(arg any) string {
 	return p
 }
 
-func (t *Target) findIndex(quaternionList [][]string, target []string) int {
-	for i, v := range quaternionList {
-		if t.equalStringSlices(v, target) {
-			return i
-		}
-	}
-	return -1
-}
-
 func (t *Target) equalStringSlices(a, b []string) bool {
 	if len(a) != len(b) {
 		return false
@@ -295,20 +286,6 @@ func (t *Target) equalStringSlices(a, b []string) bool {
 		}
 	}
 	return true
-}
-
-func (t *Target) contains(slice []string, item string) bool {
-	for _, v := range slice {
-		if v == item {
-			return true
-		}
-	}
-	return false
-}
-
-func (t *Target) containsMapKey(m map[string]string, key string) bool {
-	_, exists := m[key]
-	return exists
 }
 
 func (t *Target) toInt(s string) int {
