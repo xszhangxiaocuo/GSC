@@ -143,6 +143,7 @@ type Analyser struct {
 	err           bool              //标记是否出现错误
 	paramFlag     bool              //标记是否有参数
 	divFlag       bool              //标记是否有除法
+	retFlag       bool              //标记是否有返回值
 	divToken      *util.TokenNode   //除法的token
 	node          *util.TreeNode    //当前节点
 	Qf            *util.QuaFormList //四元式列表
@@ -1741,6 +1742,9 @@ func (a *Analyser) analyseReturn(node *util.TreeNode, next int) {
 	child := node.Children[next]
 	switch child.Value {
 	case "return":
+		if a.Level == 1 {
+			a.retFlag = true
+		}
 	case consts.RETURN_STMT_0:
 		a.analyseReturn0(child, 0)
 	}
@@ -1838,6 +1842,7 @@ func (a *Analyser) analyseFuncCall(node *util.TreeNode, next int, flag bool) {
 				a.calStacks.PushFuncCall(child.Children[0].Value)
 			}
 		} else { //在布尔表达式中
+			a.Qf.FuncCall = true
 			if a.checkFunc(child.Children[0]) {
 				a.calStacks.PushFuncCall(child.Children[0].Value)
 			} else {
@@ -2022,6 +2027,16 @@ func (a *Analyser) analyseFunctionDefine(node *util.TreeNode, next int) {
 		a.analyseDefineFormalParamList(child, 0)
 	case consts.COMPOUND_STMT:
 		a.analyseCompoundStatement(child, 0)
+		if !a.retFlag {
+			f, _ := a.SymbolTable.FindFunction(a.currentFunc)
+			if f.Type == "void" {
+				a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_RETURN], nil, nil, nil)
+			} else {
+				a.Logger.AddErr("\t\t\t\t\t\t函数：" + a.currentFunc + " 缺少返回语句\n")
+				a.err = true
+			}
+		}
+		a.retFlag = false
 	}
 	a.infoFlag()
 	a.analyseFunctionDefine(node, next+1)

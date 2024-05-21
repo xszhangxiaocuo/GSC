@@ -250,13 +250,14 @@ func (c *CalStack) Cal() {
 	}
 
 	if consts.QUA_CALL == op {
-		if c.NumStack.IsEmpty() {
+		if !c.qf.FuncCall { //函数调用语句，不需要保存返回值
 			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_FUNCCALL], num2, nil, nil)
-		} else {
+		} else { //函数调用表达式，需要保存返回值
 			result := c.qf.GetTemp()
 			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_FUNCCALL], num2, nil, result)
 			c.NumStack.Push(result)
 		}
+		c.qf.FuncCall = false
 		return
 	}
 
