@@ -448,7 +448,7 @@ func (d *DAG) generateOptimizedQuaForms() {
 				} else {
 					d.DAGQf.AddQuaForm(node.Op, left.MainLabel, nil, nil)
 				}
-			} else if node.Op == "sys" || !isOp(node.Op.(string)) { //TODO
+			} else if node.Op == "sys" || !isOp(node.Op.(string)) { // 系统结束或者函数定义
 				d.DAGQf.AddQuaForm(node.Op, nil, nil, nil)
 			} else if node.Op == "jmp" {
 				d.DAGQf.AddQuaForm(node.Op, nil, nil, node.MainLabel)
