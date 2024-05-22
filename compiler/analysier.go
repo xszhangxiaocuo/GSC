@@ -1842,7 +1842,7 @@ func (a *Analyser) analyseFuncCall(node *util.TreeNode, next int, flag bool) {
 				a.calStacks.PushFuncCall(child.Children[0].Value)
 			}
 		} else { //在布尔表达式中
-			a.Qf.FuncCall = true
+			a.Qf.FuncCall++
 			if a.checkFunc(child.Children[0]) {
 				a.calStacks.PushFuncCall(child.Children[0].Value)
 			} else {
