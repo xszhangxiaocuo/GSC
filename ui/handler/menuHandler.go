@@ -199,18 +199,15 @@ func (handler *MenuHandler) AlgorithmHandler(myApp fyne.App, input *widget.Entry
 			dag := compiler.NewDAG(nil)
 			//  1. 从左边的输入框中获取输入的四元式代码
 			inputQf := leftEntry.Text
+			if inputQf == "" {
+				dialog.ShowInformation("DAG优化", "请输入四元式代码", window)
+				return
+			}
 			//  2. 调用 DAG 优化函数，传入四元式代码
 			dag.StartDAG(inputQf)
 			//  3. 将优化后的四元式代码分别显示在右边的两个输入框中
 			topRightEntry.SetText(dag.PrintBasicBlocks())
-			//  4. 显示一个通知，表示优化已完成
-			//  5. 将优化后的四元式代码保存到文件中
-			//  6. 将优化后的四元式代码绘制成 DAG 图片
-			//  7. 显示一个通知，表示图片已保存
-			//  8. 将优化后的四元式代码绘制成 DAG 图片显示在窗口中
-			//  9. 显示一个通知，表示图片已显示
-			//  10. 将优化后的四元式代码绘制成 DAG 图片保存到文件中
-			//  11. 显示一个通知，表示图片已保存
+			bottomRightEntry.SetText(dag.DAGQf.PrintQuaFormList())
 
 			// 显示一个通知，表示优化已完成
 			fyne.CurrentApp().SendNotification(&fyne.Notification{

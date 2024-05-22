@@ -195,7 +195,7 @@ func (t *Target) setFuncParamAddr(param any) {
 	}
 	if _, ok = t.getFuncParamAddr(p); !ok && !t.isGlobalVar(p) { // 查询不到参数地址并且不是全局变量
 		if t.SymbolTable.VarTable[t.CurrentFunc][p] != nil && t.SymbolTable.VarTable[t.CurrentFunc][p].ParamFlag { // 是函数形参
-			t.FuncParamLen += 2
+			//t.FuncParamLen += 2
 			t.FuncMap[t.CurrentFunc][p] = fmt.Sprintf("ss:[bp+%d]", 4+t.FuncParamNum*2) // 函数形参地址, 从bp+4开始,bp+2为返回地址,bp+0为bp
 			t.FuncParamNum++
 		} else if !t.isDigit(p) { // 非常量数字，是局部变量或临时变量
@@ -209,7 +209,7 @@ func (t *Target) setFuncParamAddr(param any) {
 // initFuncParamAddr 初始化函数的形参对应的地址
 func (t *Target) initFuncParamAddr() {
 	for _, name := range t.SymbolTable.FuncTable[t.CurrentFunc].ParsName {
-		t.FuncParamLen += 2
+		//t.FuncParamLen += 2
 		t.FuncMap[t.CurrentFunc][name] = fmt.Sprintf("ss:[bp+%d]", 4+t.FuncParamNum*2) // 函数形参地址, 从bp+4开始,bp+2为返回地址,bp+0为bp
 		t.FuncParamNum++
 	}
@@ -254,6 +254,9 @@ func (t *Target) isGlobalVar(varName string) bool {
 
 // DataAdress 获取参数地址
 func (t *Target) DataAdress(arg any) string {
+	if arg == nil {
+		return ""
+	}
 	param := arg.(string)
 	p := ""
 	if t.CurrentFunc == "main" {
