@@ -129,14 +129,14 @@ func (t *Target) GenerateAsmCode() {
 			}
 			t.Asm.WriteString(fmt.Sprintf("_%d:\tJMP far ptr %s\n", i, jmp))
 		case "jz":
-			jmp := "_" + result.(string)
+			jmp := "_" + strconv.Itoa(result.(int))
 			// 跳转的位置为程序结束时，跳转到退出程序的位置
 			if t.Qf.GetQuaForm(result.(int)).Op == "sys" {
 				jmp = "quit"
 			}
 			t.Asm.WriteString(fmt.Sprintf("_%d:\tMOV AX,%s\n\tCMP AX,0\n\tJNE _NE_%d\n\tJMP far ptr %s\n_NE_%d:\tNOP\n", i, t.DataAdress(arg1), i, jmp, i))
 		case "jnz":
-			jmp := "_" + result.(string)
+			jmp := "_" + strconv.Itoa(result.(int))
 			// 跳转的位置为程序结束时，跳转到退出程序的位置
 			if t.Qf.GetQuaForm(result.(int)).Op == "sys" {
 				jmp = "quit"
