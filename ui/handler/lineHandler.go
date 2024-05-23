@@ -5,6 +5,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+	"strconv"
 )
 
 type LineHandler struct {
@@ -35,13 +36,15 @@ func (l *LineHandler) AddLine(context []byte) string {
 func (l *LineHandler) DelLine(context []byte) string {
 	l.Flag = false
 	result := make([]byte, 0)
+	line := 1
 	for i := 0; i < len(context); i++ {
 		ch := context[i]
 		if i < 3 { // 前三个字节为第一行添加的行号
 			continue
 		}
-		if ch == '\n' { // 换行跳过三个加入的行号字节
-			i += 3
+		if ch == '\n' { // 换行跳过加入的行号字节,
+			i += 2 + len(strconv.Itoa(line)) // 跳过换行符和行号
+			line++
 		}
 
 		result = append(result, ch)
