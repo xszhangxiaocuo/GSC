@@ -85,7 +85,7 @@ func (handler *MenuHandler) LexerHandler(input *widget.Entry, output *widget.Ent
 		}
 
 		content := output.Text
-		path := fmt.Sprintf("pkg/saveFile/lex/%s.txt", util.GetTIme())
+		path := fmt.Sprintf("pkg/saveFile/test/%s_token.txt", util.GetTIme())
 		err = util.SaveFile(content, path)
 		if err != nil {
 			log.Print(err.Error())
@@ -150,6 +150,19 @@ func (handler *MenuHandler) AnalysierHandler(input *widget.Entry, output *widget
 		if errs == 0 {
 			handler.AnalyserFlag = true
 		}
+		content := handler.Analyser.SymbolTable.String()
+		path := fmt.Sprintf("pkg/saveFile/test/%s_symbol.txt", util.GetTIme())
+		err := util.SaveFile(content, path)
+		if err != nil {
+			log.Print(err.Error())
+		}
+
+		content = handler.Analyser.Qf.PrintQuaFormList()
+		path = fmt.Sprintf("pkg/saveFile/test/%s_inter_list.txt", util.GetTIme())
+		err = util.SaveFile(content, path)
+		if err != nil {
+			log.Print(err.Error())
+		}
 	}
 }
 
@@ -177,6 +190,13 @@ func (handler *MenuHandler) TargetHandler(input *widget.Entry, output *widget.En
 		bottomOutput.SetText(msg)
 		handler.LexerFlag = false
 		handler.ParserFlag = false
+
+		content := handler.Target.Asm.String()
+		path := fmt.Sprintf("pkg/saveFile/test/%s_asm.asm", util.GetTIme())
+		err := util.SaveFile(content, path)
+		if err != nil {
+			log.Print(err.Error())
+		}
 	}
 }
 
@@ -195,7 +215,6 @@ func (handler *MenuHandler) AlgorithmHandler(myApp fyne.App, input *widget.Entry
 		bottomRightEntry.SetPlaceHolder("Bottom Right Entry")
 
 		dagOptimizeButton := widget.NewButton("DAG优化", func() {
-			//  TODO：调用 DAG 优化函数
 			dag := compiler.NewDAG(nil)
 			//  1. 从左边的输入框中获取输入的四元式代码
 			inputQf := leftEntry.Text
@@ -209,6 +228,12 @@ func (handler *MenuHandler) AlgorithmHandler(myApp fyne.App, input *widget.Entry
 			topRightEntry.SetText(dag.PrintBasicBlocks())
 			bottomRightEntry.SetText(dag.DAGQf.PrintQuaFormList())
 
+			content := dag.DAGQf.PrintQuaFormList()
+			path := fmt.Sprintf("pkg/saveFile/test/%s_dag.txt", util.GetTIme())
+			err := util.SaveFile(content, path)
+			if err != nil {
+				log.Print(err.Error())
+			}
 			// 显示一个通知，表示优化已完成
 			fyne.CurrentApp().SendNotification(&fyne.Notification{
 				Title:   "DAG优化",

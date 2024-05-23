@@ -109,10 +109,10 @@ func InitApp() {
 		fyne.NewMenuItem("语义分析器", menuHandler.AnalysierHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
 	)
 
-	IRcodeMenu := fyne.NewMenu("中间代码",
-		fyne.NewMenuItem("中间代码生成", func() {
-			println("中间代码生成被点击了")
-		}))
+	//IRcodeMenu := fyne.NewMenu("中间代码",
+	//	fyne.NewMenuItem("中间代码生成", func() {
+	//		println("中间代码生成被点击了")
+	//	}))
 
 	targetcodeMenu := fyne.NewMenu("目标代码",
 		fyne.NewMenuItem("目标代码生成器", menuHandler.TargetHandler(leftInput, rightOutput, bottomOutput, MainWindow)),
@@ -130,7 +130,6 @@ func InitApp() {
 		lexerMenu,
 		parserMenu,
 		analysierMenu,
-		IRcodeMenu,
 		targetcodeMenu,
 		algorithmMenu,
 	)

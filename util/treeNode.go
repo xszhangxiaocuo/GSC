@@ -1,9 +1,12 @@
 package util
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/awalterschulze/gographviz"
+	"os/exec"
 	"strconv"
+	"strings"
 )
 
 var treeStr string
@@ -33,21 +36,21 @@ func GetTree(node *TreeNode) string {
 	treeStr = ""
 	PrintTree(node, "", true)
 
-	////绘制图片
-	//graphAst := gographviz.NewEscape()
-	//graphAst.SetName("syntax_tree")
-	//graphAst.SetDir(true)
-	//AddNode(graphAst, node, "")
-	//
-	//graph := graphAst.String()
-	//
-	//cmd := exec.Command("dot", "-Tpng", "-o", "pkg/tree_img/tree_"+GetTIme()+".png")
-	//var stderr bytes.Buffer
-	//cmd.Stderr = &stderr // 捕获标准错误输出
-	//cmd.Stdin = strings.NewReader(graph)
-	//if err := cmd.Run(); err != nil {
-	//	fmt.Println("Error:", err, "Stderr:", stderr.String())
-	//}
+	//绘制图片
+	graphAst := gographviz.NewEscape()
+	graphAst.SetName("syntax_tree")
+	graphAst.SetDir(true)
+	AddNode(graphAst, node, "")
+
+	graph := graphAst.String()
+
+	cmd := exec.Command("dot", "-Tpng", "-o", "pkg/tree_img/tree_"+GetTIme()+".png")
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr // 捕获标准错误输出
+	cmd.Stdin = strings.NewReader(graph)
+	if err := cmd.Run(); err != nil {
+		fmt.Println("Error:", err, "Stderr:", stderr.String())
+	}
 
 	return treeStr
 }
