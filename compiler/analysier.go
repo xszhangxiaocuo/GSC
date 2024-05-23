@@ -713,6 +713,10 @@ func (a *Analyser) analyseDeclarationConstTableValue(node *util.TreeNode, next i
 		} else {
 			a.err = true
 		}
+		if a.info.Value == nil {
+			a.Logger.AddAnalyseErr(child.Children[0].Token, "常量未赋值")
+			a.err = true
+		}
 	case consts.CONSTANT:
 		if a.checkConstNumber(child.Children[0].Children[0]) {
 			a.info.Value = child.Children[0].Children[0].Value
@@ -821,7 +825,12 @@ func (a *Analyser) analyseDeclarationVarTable0(node *util.TreeNode, next int) {
 			//	a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
 			//	a.calStacks.PushNum(a.info.Value)
 			//}
-			a.clearCalStacks()
+			if a.calStacks.CurrentStack.OpStack.Top() == consts.QUA_ASSIGNMENT {
+				a.clearCalStacks()
+			} else {
+				a.calStacks.CurrentStack.NumStack.Pop()
+			}
+
 			a.addVarTable()
 		}
 		a.err = false
@@ -836,7 +845,7 @@ func (a *Analyser) analyseDeclarationVarTable0(node *util.TreeNode, next int) {
 			//	a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
 			//	a.calStacks.PushNum(a.info.Value)
 			//}
-			a.clearCalStacks()
+			a.calStacks.CurrentStack.NumStack.Pop()
 			a.addVarTable()
 		}
 		//继续传递info信息
