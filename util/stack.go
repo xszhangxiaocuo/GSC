@@ -354,7 +354,6 @@ func (c *CalStack) CalIf() {
 	}
 
 	if c.isRelOp(op) {
-		c.qf.RelaOp = false
 		if c.currentOp == consts.QUA_AND {
 			id := c.qf.AddQuaForm(c.whichLogicOp(op), num1, num2, nil)
 			c.qf.QuaForms[id].Result = id + 2
@@ -391,6 +390,7 @@ func (c *CalStack) move() {
 	}
 	// 当前运算符为&&，将真出口栈中的四元式的结果设置为下一个四元式的id
 	if c.currentOp == consts.QUA_AND {
+		c.qf.RelaOp = false
 		for !stack.TrueStack.IsEmpty() {
 			id := stack.TrueStack.Pop().(int)
 			c.qf.QuaForms[id].Result = c.qf.NextQuaFormId()
@@ -404,6 +404,7 @@ func (c *CalStack) move() {
 	}
 	// 当前运算符为||，将假出口栈中的四元式的结果设置为下一个四元式的id
 	if c.currentOp == consts.QUA_OR {
+		c.qf.RelaOp = false
 		for !stack.FalseStack.IsEmpty() {
 			id := stack.FalseStack.Pop().(int)
 			c.qf.QuaForms[id].Result = c.qf.NextQuaFormId()

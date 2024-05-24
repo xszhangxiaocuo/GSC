@@ -845,7 +845,11 @@ func (a *Analyser) analyseDeclarationVarTable0(node *util.TreeNode, next int) {
 			//	a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
 			//	a.calStacks.PushNum(a.info.Value)
 			//}
-			a.calStacks.CurrentStack.NumStack.Pop()
+			if a.calStacks.CurrentStack.OpStack.Top() == consts.QUA_ASSIGNMENT {
+				a.clearCalStacks()
+			} else {
+				a.calStacks.CurrentStack.NumStack.Pop()
+			}
 			a.addVarTable()
 		}
 		//继续传递info信息
@@ -1498,6 +1502,7 @@ func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
 		//分析完if的判断条件后，需要回填真出口
 		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
 		a.Qf.IfFlag = false
+		a.Qf.RelaOp = false
 	case consts.BOOLEAN_EXPR:
 		a.analyseBoolExp(child, 0)
 	case consts.COMPOUND_STMT:
