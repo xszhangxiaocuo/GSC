@@ -259,7 +259,7 @@ func (t *Target) DataAdress(arg any) string {
 	}
 	param := arg.(string)
 	p := ""
-	if t.CurrentFunc == "main" {
+	if t.CurrentFunc == "main" { // main函数，从数据段中取值
 		if param[0] == '$' { // 临时变量，从扩展段的栈中取值
 			p = fmt.Sprintf("es:[%d]", t.toInt(param[2:])*2)
 		} else if t.isDigit(param) { // 数字，直接取值

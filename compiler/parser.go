@@ -7,10 +7,10 @@ import (
 )
 
 type Parser struct {
-	Token  []util.TokenNode
-	Index  int //当前的token下标
-	Logger *logger.Logger
-	AST    *util.TreeNode
+	Token  []util.TokenNode // token列表
+	Index  int              //当前的token下标
+	Logger *logger.Logger   // 日志
+	AST    *util.TreeNode   // 语法树根节点
 }
 
 func NewParser() *Parser {

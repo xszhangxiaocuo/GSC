@@ -17,7 +17,6 @@ type DAGNode struct {
 	Labels    map[any]bool // 附加标签
 	Left      *DAGNode
 	Right     *DAGNode
-	Parents   []*DAGNode
 	IsConst   bool
 }
 
@@ -429,7 +428,7 @@ func (d *DAG) deleteLabel(node *DAGNode, label any) {
 // generateOptimizedQuaForms 生成优化后的四元式列表
 func (d *DAG) generateOptimizedQuaForms() {
 	for _, node := range d.CurrentList {
-		if node.Op == nil { // 没有操作符且附加标签中有自定义变量，需要将自定义变量赋值给主标签
+		if node.Op == nil { // 没有操作符且附加标签中有自定义变量，需要将主标签赋值给自定义变量赋值
 			for label, _ := range node.Labels {
 				if getPriority(label.(string)) == 2 {
 					d.DAGQf.AddQuaForm("=", node.MainLabel, nil, label)

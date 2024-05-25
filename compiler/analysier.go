@@ -52,9 +52,9 @@ func (i *Info) String() string {
 
 // SymbolTable 符号表
 type SymbolTable struct {
-	VarTable   map[string]map[string]*Info //变量表
-	ConstTable map[string]map[string]*Info //常量表
-	FuncTable  map[string]*Info            //函数表
+	VarTable   map[string]map[string]*Info //变量表，作用域->变量名->变量信息
+	ConstTable map[string]map[string]*Info //常量表，作用域->常量名->常量信息
+	FuncTable  map[string]*Info            //函数表，函数名->函数信息
 }
 
 // String 返回符号表的字符串形式
@@ -133,7 +133,7 @@ func (s *SymbolTable) FindFunction(name string) (*Info, bool) {
 // Analyser 语义分析器
 type Analyser struct {
 	Ast           *util.TreeNode    //语法树
-	calStacks     *util.CalStacks   //运算符栈
+	calStacks     *util.CalStacks   //运算栈
 	SymbolTable   *SymbolTable      //符号表
 	Logger        *logger.Logger    //日志记录器
 	Level         int               //作用域等级

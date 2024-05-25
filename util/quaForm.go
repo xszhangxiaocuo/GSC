@@ -51,7 +51,7 @@ type QuaFormList struct {
 	CurrentBreakStack    *Stack[any] // 需要回填的break四元式编号
 	CurrentContinueStack *Stack[any] // 需要回填的continue四元式编号
 	RelaOp               bool        // 标记当前运算过程中是否有关系运算符
-	FuncCall             int         // 标记当前是否在处理函数调用(true表示函数调用在表达式中)
+	FuncCall             int         // 标记当前在表达式中的函数调用语句个数
 }
 
 // NewQuaFormList 创建四元式列表

@@ -11,9 +11,9 @@ import (
 
 // Lexer 词法分析器当前状态
 type Lexer struct {
-	pos        util.Position
-	reader     *bufio.Reader
-	numberFlag int //识别数字时标识当前是几进制
+	pos        util.Position // 当前读取的位置
+	reader     *bufio.Reader // 读取源文件的reader
+	numberFlag int           //识别数字时标识当前是几进制
 }
 
 // NewLexer 传入源文件reader创建一个Lexer
@@ -104,7 +104,7 @@ func (l *Lexer) peek(n int) ([]byte, error) {
 	return r, nil
 }
 
-// Lex 一个字符一个字符扫描，识别出一个token后返回行列位置，token的值和编码
+// Lex 一个字符一个字符扫描，识别出一个token后返回行列位置，token的值和编码以及错误信息
 func (l *Lexer) Lex() (util.Position, consts.Token, string, error) {
 	for {
 		var tokenid consts.Token
