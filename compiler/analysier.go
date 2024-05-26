@@ -825,7 +825,7 @@ func (a *Analyser) analyseDeclarationVarTable0(node *util.TreeNode, next int) {
 			//	a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
 			//	a.calStacks.PushNum(a.info.Value)
 			//}
-			if a.calStacks.CurrentStack.OpStack.Top() == consts.QUA_ASSIGNMENT {
+			if a.info.initFlag {
 				a.clearCalStacks()
 			} else {
 				a.calStacks.CurrentStack.NumStack.Pop()
@@ -845,7 +845,7 @@ func (a *Analyser) analyseDeclarationVarTable0(node *util.TreeNode, next int) {
 			//	a.calStacks.PushOpe(consts.QUA_ASSIGNMENT)
 			//	a.calStacks.PushNum(a.info.Value)
 			//}
-			if a.calStacks.CurrentStack.OpStack.Top() == consts.QUA_ASSIGNMENT {
+			if a.info.initFlag {
 				a.clearCalStacks()
 			} else {
 				a.calStacks.CurrentStack.NumStack.Pop()
