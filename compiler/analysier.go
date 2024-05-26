@@ -1594,7 +1594,8 @@ func (a *Analyser) analyseWhileStatement(node *util.TreeNode, next int) {
 		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
 	case ")":
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		a.calStacks.CurrentStack.OpStack.Pop() // 弹出move操作
 		//分析完while的判断条件后，需要回填真出口
 		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
 		a.Qf.IfFlag = false
@@ -1632,7 +1633,8 @@ func (a *Analyser) analyseDoWhileStatement(node *util.TreeNode, next int) {
 		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
 	case ")":
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		a.calStacks.CurrentStack.OpStack.Pop() // 弹出move操作
 		//在do while语句中，条件判断结束后，真出口跳转到语句开始位置，假出口跳转到下一条指令
 		a.calStacks.ClearTrueStack(a.CurrentJmpPos.ConditionPos)
 		a.calStacks.ClearFalseStack(a.Qf.NextQuaFormId())
@@ -1688,7 +1690,8 @@ func (a *Analyser) analyseForStatement(node *util.TreeNode, next int) {
 	case consts.BOOLEAN_EXPR:
 		a.analyseBoolExp(child, 0)
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		a.calStacks.CurrentStack.OpStack.Pop() // 弹出move操作
 		a.Qf.IfFlag = false
 		//记录每次循环后需要执行的赋值表达式的位置
 		a.CurrentJmpPos.AssignPos = a.Qf.NextQuaFormId()
