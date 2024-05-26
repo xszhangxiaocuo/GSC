@@ -171,7 +171,7 @@ func (t *Target) GenerateAsmCode() {
 // isFuncDef 判断当前四元式是否为函数定义
 func (t *Target) isFuncDef(op any) bool {
 	ope := op.(string)
-	if ope == "=" || ope == "+" || ope == "-" || ope == "*" || ope == "/" || ope == "%" || ope == "<" || ope == "<=" || ope == ">" || ope == ">=" || ope == "==" || ope == "!=" || ope == "j<" || ope == "j>=" || ope == "j>" || ope == "j<=" || ope == "j==" || ope == "j!=" || ope == "&&" || ope == "||" || ope == "!" || ope == "jmp" || ope == "jz" || ope == "jnz" || ope == "para" || ope == "call" || ope == "ret" || ope == "sys" {
+	if ope == "=" || ope == "+" || ope == "-" || ope == "*" || ope == "/" || ope == "%" || ope == "<" || ope == "<=" || ope == ">" || ope == ">=" || ope == "==" || ope == "!=" || ope == "j<" || ope == "j>=" || ope == "j>" || ope == "j<=" || ope == "j==" || ope == "j!=" || ope == "&&" || ope == "||" || ope == "!" || ope == "jmp" || ope == "jz" || ope == "jnz" || ope == "para" || ope == "call" || ope == "ret" || ope == "sys" || ope == "@" || ope == "#" {
 		return false
 	}
 	return true
@@ -277,18 +277,6 @@ func (t *Target) DataAdress(arg any) string {
 		}
 	}
 	return p
-}
-
-func (t *Target) equalStringSlices(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }
 
 func (t *Target) toInt(s string) int {
