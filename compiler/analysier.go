@@ -1402,11 +1402,34 @@ func (a *Analyser) analyseControlStatement(node *util.TreeNode, next int) {
 	child := node.Children[next]
 	switch child.Value {
 	case consts.IF_STMT:
+		//新建一个if语句的计算栈
+		current := util.NewCalStack(a.Qf)
+		a.calStacks.LogicStack.Push(current.LogicStack)
+		a.calStacks.CurrentLogicStack = current.LogicStack
+		a.calStacks.BracketStack.Push(current)
+		a.calStacks.CurrentStack = current
+
 		stack := util.NewStack()
 		a.calStacks.PushIfStack(stack)
+
 		a.analyseIfStatement(child, 0)
+
 		a.calStacks.PopCurrentIfStack()
+
+		a.calStacks.CurrentLogicStack.ClearTrueStack(a.Qf.NextQuaFormId())
+		a.calStacks.CurrentLogicStack.ClearFalseStack(a.Qf.NextQuaFormId())
+		a.calStacks.PopCurrentLogicStack()
+		a.calStacks.BracketStack.Pop()
+		a.calStacks.CurrentStack = a.calStacks.BracketStack.Top().(*util.CalStack)
+
 	case consts.WHILE_STMT:
+		//新建一个while语句的计算栈
+		current := util.NewCalStack(a.Qf)
+		a.calStacks.LogicStack.Push(current.LogicStack)
+		a.calStacks.CurrentLogicStack = current.LogicStack
+		a.calStacks.BracketStack.Push(current)
+		a.calStacks.CurrentStack = current
+
 		jmpPos := util.NewForJmpPos()
 		a.Qf.JmpPoint.Push(jmpPos)
 		a.CurrentJmpPos = jmpPos
@@ -1427,7 +1450,20 @@ func (a *Analyser) analyseControlStatement(node *util.TreeNode, next int) {
 		}
 		//回填break出口
 		a.Qf.ClearBreakStack(a.Qf.NextQuaFormId())
+
+		a.calStacks.CurrentLogicStack.ClearTrueStack(a.Qf.NextQuaFormId())
+		a.calStacks.CurrentLogicStack.ClearFalseStack(a.Qf.NextQuaFormId())
+		a.calStacks.PopCurrentLogicStack()
+		a.calStacks.BracketStack.Pop()
+		a.calStacks.CurrentStack = a.calStacks.BracketStack.Top().(*util.CalStack)
 	case consts.DO_WHILE_STMT:
+		//新建一个dowhile语句的计算栈
+		current := util.NewCalStack(a.Qf)
+		a.calStacks.LogicStack.Push(current.LogicStack)
+		a.calStacks.CurrentLogicStack = current.LogicStack
+		a.calStacks.BracketStack.Push(current)
+		a.calStacks.CurrentStack = current
+
 		jmpPos := util.NewForJmpPos()
 		a.Qf.JmpPoint.Push(jmpPos)
 		a.CurrentJmpPos = jmpPos
@@ -1448,7 +1484,20 @@ func (a *Analyser) analyseControlStatement(node *util.TreeNode, next int) {
 		}
 		//回填break出口
 		a.Qf.ClearBreakStack(a.Qf.NextQuaFormId())
+
+		a.calStacks.CurrentLogicStack.ClearTrueStack(a.Qf.NextQuaFormId())
+		a.calStacks.CurrentLogicStack.ClearFalseStack(a.Qf.NextQuaFormId())
+		a.calStacks.PopCurrentLogicStack()
+		a.calStacks.BracketStack.Pop()
+		a.calStacks.CurrentStack = a.calStacks.BracketStack.Top().(*util.CalStack)
+
 	case consts.FOR_STMT:
+		//新建一个for语句的计算栈
+		current := util.NewCalStack(a.Qf)
+		a.calStacks.LogicStack.Push(current.LogicStack)
+		a.calStacks.CurrentLogicStack = current.LogicStack
+		a.calStacks.BracketStack.Push(current)
+		a.calStacks.CurrentStack = current
 		jmpPos := util.NewForJmpPos()
 		a.Qf.JmpPoint.Push(jmpPos)
 		a.CurrentJmpPos = jmpPos
@@ -1469,6 +1518,12 @@ func (a *Analyser) analyseControlStatement(node *util.TreeNode, next int) {
 		}
 		//回填break出口
 		a.Qf.ClearBreakStack(a.Qf.NextQuaFormId())
+
+		a.calStacks.CurrentLogicStack.ClearTrueStack(a.Qf.NextQuaFormId())
+		a.calStacks.CurrentLogicStack.ClearFalseStack(a.Qf.NextQuaFormId())
+		a.calStacks.PopCurrentLogicStack()
+		a.calStacks.BracketStack.Pop()
+		a.calStacks.CurrentStack = a.calStacks.BracketStack.Top().(*util.CalStack)
 	case consts.RETURN_STMT:
 		a.analyseReturn(child, 0)
 	case consts.BREAK_STMT:
@@ -1497,8 +1552,9 @@ func (a *Analyser) analyseIfStatement(node *util.TreeNode, next int) {
 		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
 	case ")":
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-		//a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
-		a.calStacks.CurrentStack.OpStack.Pop() // 弹出move操作
+		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//a.calStacks.CurrentStack.OpStack.Pop()  // 弹出move操作
+		//a.calStacks.CurrentStack.NumStack.Pop() // 弹出栈顶的逻辑栈
 		//分析完if的判断条件后，需要回填真出口
 		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
 		a.Qf.IfFlag = false
@@ -1594,8 +1650,9 @@ func (a *Analyser) analyseWhileStatement(node *util.TreeNode, next int) {
 		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
 	case ")":
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-		//a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
-		a.calStacks.CurrentStack.OpStack.Pop() // 弹出move操作
+		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//a.calStacks.CurrentStack.OpStack.Pop()  // 弹出move操作
+		//a.calStacks.CurrentStack.NumStack.Pop() // 弹出栈顶的逻辑栈
 		//分析完while的判断条件后，需要回填真出口
 		a.calStacks.ClearTrueStack(a.Qf.NextQuaFormId())
 		a.Qf.IfFlag = false
@@ -1633,8 +1690,9 @@ func (a *Analyser) analyseDoWhileStatement(node *util.TreeNode, next int) {
 		a.calStacks.PushOpe(consts.QUA_LEFTSMALLBRACKET)
 	case ")":
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-		//a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
-		a.calStacks.CurrentStack.OpStack.Pop() // 弹出move操作
+		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//a.calStacks.CurrentStack.OpStack.Pop()  // 弹出move操作
+		//a.calStacks.CurrentStack.NumStack.Pop() // 弹出栈顶的逻辑栈
 		//在do while语句中，条件判断结束后，真出口跳转到语句开始位置，假出口跳转到下一条指令
 		a.calStacks.ClearTrueStack(a.CurrentJmpPos.ConditionPos)
 		a.calStacks.ClearFalseStack(a.Qf.NextQuaFormId())
@@ -1664,6 +1722,7 @@ func (a *Analyser) analyseForStatement(node *util.TreeNode, next int) {
 	child := node.Children[next]
 	switch child.Value {
 	case "for":
+
 	case "(":
 	case ")":
 	case ";":
@@ -1690,8 +1749,9 @@ func (a *Analyser) analyseForStatement(node *util.TreeNode, next int) {
 	case consts.BOOLEAN_EXPR:
 		a.analyseBoolExp(child, 0)
 		a.calStacks.PushOpe(consts.QUA_RIGHTSMALLBRACKET)
-		//a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
-		a.calStacks.CurrentStack.OpStack.Pop() // 弹出move操作
+		a.calStacks.CalIf() //执行一次move操作，将括号算出的逻辑栈值移动到当前逻辑栈
+		//a.calStacks.CurrentStack.OpStack.Pop()  // 弹出move操作
+		//a.calStacks.CurrentStack.NumStack.Pop() // 弹出栈顶的逻辑栈
 		a.Qf.IfFlag = false
 		//记录每次循环后需要执行的赋值表达式的位置
 		a.CurrentJmpPos.AssignPos = a.Qf.NextQuaFormId()
@@ -1705,6 +1765,7 @@ func (a *Analyser) analyseForStatement(node *util.TreeNode, next int) {
 		a.Qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, a.CurrentJmpPos.AssignPos)
 		a.calStacks.ClearFalseStack(a.Qf.NextQuaFormId())
 		a.calStacks.PopCurrentLogicStack()
+
 	}
 	a.infoFlag()
 	a.analyseForStatement(node, next+1)

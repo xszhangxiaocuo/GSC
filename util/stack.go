@@ -313,13 +313,11 @@ func (c *CalStack) CalIf() {
 		}
 
 		// 当前没有运算符入栈
-		if c.currentOp == nil {
-			id := c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JT], num2, nil, nil)
-			c.LogicStack.TrueStack.Push(id)
-			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JF], num2, nil, nil)
-			c.LogicStack.FalseStack.Push(id + 1)
-			return
-		}
+		id := c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JT], num2, nil, nil)
+		c.LogicStack.TrueStack.Push(id)
+		c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JF], num2, nil, nil)
+		c.LogicStack.FalseStack.Push(id + 1)
+		return
 
 	}
 
@@ -367,7 +365,7 @@ func (c *CalStack) CalIf() {
 			c.qf.QuaForms[id+1].Result = id + 2
 			// 遇到||运算符，清空假出口栈
 			c.LogicStack.ClearFalseStack(c.qf.NextQuaFormId())
-		} else if c.currentOp == nil {
+		} else {
 			id := c.qf.AddQuaForm(c.whichLogicOp(op), num1, num2, nil)
 			c.LogicStack.TrueStack.Push(id)
 			c.qf.AddQuaForm(consts.QuaFormMap[consts.QUA_JMP], nil, nil, nil)
@@ -418,17 +416,15 @@ func (c *CalStack) move() {
 		return
 	}
 	// 当前没有运算符入栈，将上一个括号传递出来的真出口和假出口中的四元式id放到当前逻辑栈中
-	if c.currentOp == nil {
-		for !stack.TrueStack.IsEmpty() {
-			id := stack.TrueStack.Pop().(int)
-			c.LogicStack.TrueStack.Push(id)
-		}
-		for !stack.FalseStack.IsEmpty() {
-			id := stack.FalseStack.Pop().(int)
-			c.LogicStack.FalseStack.Push(id)
-		}
-		return
+	for !stack.TrueStack.IsEmpty() {
+		id := stack.TrueStack.Pop().(int)
+		c.LogicStack.TrueStack.Push(id)
 	}
+	for !stack.FalseStack.IsEmpty() {
+		id := stack.FalseStack.Pop().(int)
+		c.LogicStack.FalseStack.Push(id)
+	}
+	return
 }
 
 // CalAll 计算所有
@@ -516,7 +512,7 @@ func (c *CalStacks) PushOpe(ope int) {
 	}
 	if ope == consts.QUA_RIGHTSMALLBRACKET {
 		if c.qf.RelaOp == false && c.qf.IfFlag {
-			c.CurrentStack.OpStack.Push(consts.QUA_NORELA)
+			c.CurrentStack.PushOp(consts.QUA_NORELA)
 			c.CurrentStack.Cal()
 		}
 		c.CurrentStack.CalAll()
@@ -525,12 +521,16 @@ func (c *CalStacks) PushOpe(ope int) {
 		c.BracketStack.Pop()
 		c.CurrentStack = c.BracketStack.Top().(*CalStack)
 		if c.qf.IfFlag {
-			c.CurrentStack.NumStack.Push(logicStack) // 将括号内的逻辑栈传递给上一个计算栈
-			c.CurrentStack.OpStack.Push(consts.QUA_MOVE)
+			//c.CurrentStack.NumStack.Push(logicStack) // 将括号内的逻辑栈传递给上一个计算栈
+			//c.CurrentStack.OpStack.Push(consts.QUA_MOVE)
+			c.CurrentStack.PushNum(logicStack) // 将括号内的逻辑栈传递给上一个计算栈
+			c.CurrentStack.PushOp(consts.QUA_MOVE)
 		}
 
 		if c.CurrentStack != nil && !c.qf.IfFlag { // 栈不为空，说明当前只是计算完了一个括号内的表达式，要生成一个临时变量放入当前数字栈
-			c.CurrentStack.PushNum(tempResult)
+			if tempResult != nil {
+				c.CurrentStack.PushNum(tempResult)
+			}
 		}
 		return
 	}
